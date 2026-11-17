@@ -793,6 +793,43 @@ export async function rejectProduct(request, response) {
 }
 
 /**
+ * GET /api/products/by-vendor/:vendorId
+ * Returns published products belonging to a specific vendor,
+ * optionally excluding a product (for "more from this vendor" on detail pages).
+ */
+export async function getProductsByVendor(request, response) {
+  try {
+    const { vendorId } = request.params;
+    const { excludeId, limit = 8 } = request.query;
+
+    const query = {
+      vendorId,
+      isPublished: true,
+      isDeleted: false,
+      status: "published",
+    };
+
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const products = await Product.find(query)
+      .populate("userId", "name avatar")
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .lean();
+
+    return response.json({
+      ok: true,
+      products: products.map(formatSingleProduct),
+    });
+  } catch (error) {
+    console.error("getProductsByVendor error:", error);
+    return response.status(500).json({ ok: false, products: [], message: "Failed to fetch vendor products." });
+  }
+}
+
+/**
  * Helper to format a single product for API output
  */
 function formatSingleProduct(p) {

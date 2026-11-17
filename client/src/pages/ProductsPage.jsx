@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import ProductCard from "../components/ProductCard.jsx";
-import ProductDetailModal from "../components/ProductDetailModal.jsx";
 import CartDrawer from "../components/CartDrawer.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import SiteHeader from "../components/SiteHeader.jsx";
@@ -21,9 +20,6 @@ export default function ProductsPage() {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // Selected product for detail modal
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -304,7 +300,9 @@ export default function ProductsPage() {
                   <ProductCard
                     key={p._id}
                     product={p}
-                    onSelect={(prod) => setSelectedProduct(prod)}
+                    onSelect={(prod) => {
+                      window.location.hash = `#product?id=${prod._id}`;
+                    }}
                   />
                 ))}
               </div>
@@ -340,14 +338,6 @@ export default function ProductsPage() {
 
       {/* Cart Drawer */}
       <CartDrawer />
-
-      {/* Product Detail Modal */}
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
 
       <SiteFooter />
     </div>

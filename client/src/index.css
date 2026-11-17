@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vermilion: #b9382b;
+  --color-terai: #f28c28;
+  --color-teal: #17665d;
+  --color-ivory: #fff5e8;
+  --color-charcoal: #292522;
+  --color-sand: #f3ede5;
+  --font-serif: "Fraunces", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+#crafts,
+#path,
+#mission,
+#creators {
+  scroll-margin-top: 5.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: #f28c28;
+  color: #292522;
+}

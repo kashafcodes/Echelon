@@ -1,7 +1,7 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import { connectDatabase, getDatabaseState } from "./db.js";
+import connectDB from "./db.js";
 
 dotenv.config();
 
@@ -34,4 +34,4 @@ app.listen(port, () => {
   console.log(`LokArt API listening on http://localhost:${port}`);
 });
 
-connectDatabase();
+connectDB();

@@ -83,6 +83,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    avatarPublicId: {
+      type: String,
+      default: "",
+    },
     address: {
       type: addressSchema,
       required: [true, "Address is required"],

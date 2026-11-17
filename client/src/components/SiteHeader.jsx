@@ -20,7 +20,7 @@ export default function SiteHeader() {
     if (!user) return "#top";
     if (user.role === "admin") return "#admin";
     if (user.role === "vendor") return "#vendor";
-    return "#customer";
+    return "#profile";
   };
 
   const getDashboardLabel = () => {
@@ -54,17 +54,57 @@ export default function SiteHeader() {
 
           {/* Authentication State */}
           {user ? (
-            <div className="flex items-center gap-4 pl-2 border-l border-charcoal/15">
+            <div className="flex items-center gap-3 pl-3 border-l border-charcoal/15">
+              {/* Admin Dashboard Action */}
+              {user.role === "admin" && (
+                <a
+                  href="#admin"
+                  className="rounded bg-charcoal px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal/80 transition-colors flex items-center gap-1.5"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-vermilion" />
+                  Admin Dashboard
+                </a>
+              )}
+
+              {/* Vendor Studio Action */}
+              {user.role === "vendor" && (
+                <a
+                  href="#vendor"
+                  className="rounded bg-vermilion px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal transition-colors flex items-center gap-1.5"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal" />
+                  Artisan Studio
+                </a>
+              )}
+
+              {/* User Profile Pill (links directly to role-appropriate profile) */}
               <a
-                href={getDashboardHref()}
-                className="flex items-center gap-2 group"
-                title={`Logged in as ${user.name} (${user.role})`}
+                href="#profile"
+                className="flex items-center gap-2 rounded border border-charcoal/20 bg-sand/40 px-2.5 py-1 text-xs font-medium text-charcoal hover:border-teal hover:text-teal transition-all group"
+                title={
+                  user.role === "admin"
+                    ? "Administrator Profile"
+                    : user.role === "vendor"
+                      ? "Artisan Studio & Personal Profile"
+                      : "Customer Profile"
+                }
               >
-                <span className="font-medium text-sm text-charcoal group-hover:text-vermilion transition-colors">
-                  {user.name}
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="h-6 w-6 rounded-full object-cover border border-charcoal/20"
+                  />
+                ) : (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-teal text-[11px] font-bold text-ivory">
+                    {user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
+                )}
+                <span className="font-semibold text-charcoal group-hover:text-teal transition-colors max-w-[130px] truncate">
+                  {user.role === "vendor" && vendor?.businessName ? vendor.businessName : user.name}
                 </span>
                 <span
-                  className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                     user.role === "admin"
                       ? "bg-charcoal text-ivory"
                       : user.role === "vendor"
@@ -74,32 +114,20 @@ export default function SiteHeader() {
                         : "bg-teal/15 text-teal"
                   }`}
                 >
-                  {user.role === "vendor"
-                    ? vendor?.verificationStatus === "approved"
-                      ? "Artisan"
-                      : "Pending"
-                    : user.role}
+                  {user.role === "admin"
+                    ? "Admin"
+                    : user.role === "vendor"
+                      ? vendor?.verificationStatus === "approved"
+                        ? "Artisan"
+                        : "Pending"
+                      : "Customer"}
                 </span>
-              </a>
-
-              <a
-                href={getDashboardHref()}
-                className="border border-charcoal/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
-              >
-                {getDashboardLabel()}
-              </a>
-
-              <a
-                href="#profile"
-                className="border border-teal/40 bg-teal/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-teal hover:bg-teal hover:text-ivory transition-colors"
-              >
-                Profile
               </a>
 
               <button
                 type="button"
                 onClick={logout}
-                className="text-xs text-charcoal/60 hover:text-vermilion transition-colors"
+                className="text-xs text-charcoal/60 hover:text-vermilion transition-colors font-medium ml-1"
               >
                 Sign Out
               </button>
@@ -166,9 +194,31 @@ export default function SiteHeader() {
               {user ? (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm text-charcoal">
-                      {user.name} ({user.role})
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="h-8 w-8 rounded-full object-cover border border-charcoal/20"
+                        />
+                      ) : (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal text-xs font-bold text-ivory">
+                          {user.name?.charAt(0)?.toUpperCase() || "U"}
+                        </span>
+                      )}
+                      <div>
+                        <span className="font-semibold text-sm text-charcoal block">
+                          {user.role === "vendor" && vendor?.businessName ? vendor.businessName : user.name}
+                        </span>
+                        <span className="text-[10px] text-charcoal/60 uppercase font-bold tracking-wider">
+                          {user.role === "admin"
+                            ? "Platform Administrator"
+                            : user.role === "vendor"
+                              ? "LokArt Artisan"
+                              : "Verified Customer"}
+                        </span>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -180,19 +230,41 @@ export default function SiteHeader() {
                       Sign Out
                     </button>
                   </div>
-                  <a
-                    href={getDashboardHref()}
-                    onClick={closeMenu}
-                    className="bg-teal py-2 text-center text-xs font-semibold uppercase tracking-wider text-ivory"
-                  >
-                    Open {getDashboardLabel()}
-                  </a>
+
+                  {user.role === "admin" && (
+                    <a
+                      href="#admin"
+                      onClick={closeMenu}
+                      className="bg-charcoal py-2 text-center text-xs font-semibold uppercase tracking-wider text-ivory"
+                    >
+                      Open Admin Dashboard
+                    </a>
+                  )}
+
+                  {user.role === "vendor" && (
+                    <a
+                      href="#vendor"
+                      onClick={closeMenu}
+                      className="bg-vermilion py-2 text-center text-xs font-semibold uppercase tracking-wider text-ivory"
+                    >
+                      Open Artisan Studio
+                    </a>
+                  )}
+
                   <a
                     href="#profile"
                     onClick={closeMenu}
-                    className="border border-charcoal/30 py-2 text-center text-xs font-semibold uppercase tracking-wider text-charcoal"
+                    className={`py-2 text-center text-xs font-semibold uppercase tracking-wider ${
+                      user.role === "customer"
+                        ? "bg-teal text-ivory"
+                        : "border border-charcoal/30 text-charcoal"
+                    }`}
                   >
-                    Profile & Settings
+                    {user.role === "admin"
+                      ? "Admin Profile & Credentials"
+                      : user.role === "vendor"
+                        ? "Shop & Artisan Profile"
+                        : "My Profile & Address"}
                   </a>
                 </>
               ) : (

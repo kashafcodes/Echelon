@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { authApi } from "../services/api.js";
 import AddressForm from "../components/auth/AddressForm.jsx";
@@ -31,6 +31,15 @@ export default function UserProfile() {
   const [profileErr, setProfileErr] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
   const [passwordErr, setPasswordErr] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      setPhone(user.phone || "");
+      setAddress(user.address || {});
+      setAvatarPreview(user.avatar || null);
+    }
+  }, [user]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -162,10 +171,10 @@ export default function UserProfile() {
 
           <div className="flex items-center gap-3">
             <a
-              href="#customer"
-              className="border border-charcoal/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
+              href="#products"
+              className="bg-vermilion px-4 py-2 text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal transition-colors"
             >
-              Order Dashboard
+              Browse Products
             </a>
             <button
               type="button"

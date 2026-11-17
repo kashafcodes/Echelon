@@ -221,9 +221,17 @@ export default function VendorProfile() {
           <div className="md:col-span-1 space-y-6">
             <div className="rounded border border-charcoal/15 bg-sand/40 p-6 shadow-xs">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full bg-vermilion text-ivory font-serif text-2xl flex items-center justify-center font-bold">
-                  {vendor?.businessName ? vendor.businessName.charAt(0).toUpperCase() : "A"}
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={vendor?.businessName || user?.name}
+                    className="h-14 w-14 rounded-full object-cover border-2 border-vermilion"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-vermilion text-ivory font-serif text-2xl flex items-center justify-center font-bold">
+                    {vendor?.businessName ? vendor.businessName.charAt(0).toUpperCase() : "A"}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-serif text-xl text-charcoal">{vendor?.businessName}</h3>
                   <p className="text-xs text-teal font-medium uppercase tracking-wider">

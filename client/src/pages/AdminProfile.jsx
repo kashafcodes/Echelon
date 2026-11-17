@@ -138,9 +138,17 @@ export default function AdminProfile() {
           <div className="md:col-span-1 space-y-6">
             <div className="rounded border border-charcoal/15 bg-sand/40 p-6 shadow-xs">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full bg-charcoal text-ivory font-serif text-2xl flex items-center justify-center font-bold">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="h-14 w-14 rounded-full object-cover border-2 border-charcoal"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-charcoal text-ivory font-serif text-2xl flex items-center justify-center font-bold">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : "A"}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-serif text-xl text-charcoal">{user?.name}</h3>
                   <span className="inline-block mt-1 rounded bg-charcoal/15 px-2 py-0.5 text-[11px] font-bold text-charcoal uppercase tracking-wider">

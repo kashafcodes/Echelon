@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Vendor from "../models/Vendor.js";
 import { sendTokenResponse, clearTokenCookie } from "../utils/token.js";
+import { uploadBase64ToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 function validateAddress(address, label = "Address") {
   if (!address || typeof address !== "object") {
@@ -132,14 +133,31 @@ export async function register(request, response) {
       });
     }
 
-    // 6. Create user
+    // 6. Upload avatar to Cloudinary if provided
+    let avatarUrl = "";
+    let avatarPublicId = "";
+    if (avatar && avatar.startsWith("data:")) {
+      try {
+        const cloudRes = await uploadBase64ToCloudinary(avatar, {
+          public_id: `user_${normalizedEmail.replace(/[@.]/g, "_")}`,
+          overwrite: true,
+        });
+        avatarUrl = cloudRes.secure_url;
+        avatarPublicId = cloudRes.public_id;
+      } catch (err) {
+        console.error("[Register] Cloudinary upload failed:", err.message);
+        // Non-fatal — continue without avatar
+      }
+    }
+
+    // 7. Create user
     const user = new User({
       name: name.trim(),
       email: normalizedEmail,
       phone: phone.trim(),
       password,
       role,
-      ...(avatar ? { avatar } : {}),
+      ...(avatarUrl ? { avatar: avatarUrl, avatarPublicId } : {}),
       address: {
         country: address.country?.trim() || "Nepal",
         province: address.province.trim(),
@@ -401,11 +419,34 @@ export async function uploadAvatar(request, response) {
     if (!avatar || typeof avatar !== "string") {
       return response.status(400).json({
         ok: false,
-        message: "An image data URL or image string is required.",
+        message: "An image data URL is required.",
       });
     }
 
-    user.avatar = avatar.trim();
+    if (!avatar.startsWith("data:")) {
+      return response.status(400).json({
+        ok: false,
+        message: "Invalid image format. Please provide a valid image file.",
+      });
+    }
+
+    // Delete old avatar from Cloudinary if it exists
+    if (user.avatarPublicId) {
+      try {
+        await deleteFromCloudinary(user.avatarPublicId);
+      } catch (err) {
+        console.warn("[uploadAvatar] Could not delete old avatar:", err.message);
+      }
+    }
+
+    // Upload new avatar to Cloudinary
+    const cloudRes = await uploadBase64ToCloudinary(avatar, {
+      public_id: `lokart_user_${user._id}`,
+      overwrite: true,
+    });
+
+    user.avatar = cloudRes.secure_url;
+    user.avatarPublicId = cloudRes.public_id;
     await user.save();
 
     return response.json({
@@ -417,19 +458,30 @@ export async function uploadAvatar(request, response) {
     console.error("Upload avatar error:", error);
     return response.status(500).json({
       ok: false,
-      message: "Failed to upload profile picture.",
+      message: error.message || "Failed to upload profile picture. Please try again.",
     });
   }
 }
 
 /**
  * DELETE /api/auth/profile/avatar
- * Removes the profile picture
+ * Removes the profile picture from Cloudinary and clears the user record.
  */
 export async function removeAvatar(request, response) {
   try {
     const user = request.user;
+
+    // Delete from Cloudinary if public_id is stored
+    if (user.avatarPublicId) {
+      try {
+        await deleteFromCloudinary(user.avatarPublicId);
+      } catch (err) {
+        console.warn("[removeAvatar] Could not delete from Cloudinary:", err.message);
+      }
+    }
+
     user.avatar = "";
+    user.avatarPublicId = "";
     await user.save();
 
     return response.json({

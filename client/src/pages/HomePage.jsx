@@ -53,7 +53,7 @@ export default function HomePage() {
               traditional craftsmanship into everyday life.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a href="#crafts" className="bg-vermilion px-6 py-3 text-center text-ivory hover:bg-charcoal">
+              <a href="#products" className="bg-vermilion px-6 py-3 text-center text-ivory hover:bg-charcoal">
                 Explore Creations
               </a>
               <a

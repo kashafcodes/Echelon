@@ -1,10 +1,14 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 import connectDB, { getDatabaseState } from "./db.js";
 import authRoutes from "./routes/authRoutes.js";
+import dotenv from 'dotenv'
 
+// dotenv.config({ path: '/custom/path/to/.env' })
+dotenv.config({
+  path: './.env'
+})
 dotenv.config();
 
 const app = express();
@@ -17,7 +21,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 // Health check endpoint

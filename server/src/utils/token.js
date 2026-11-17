@@ -41,6 +41,7 @@ export function sendTokenResponse(user, statusCode, response, vendor = null, rem
       email: user.email,
       phone: user.phone,
       role: user.role,
+      avatar: user.avatar || "",
       address: user.address,
       isActive: user.isActive,
       createdAt: user.createdAt,

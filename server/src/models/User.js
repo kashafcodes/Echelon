@@ -79,6 +79,10 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "vendor", "admin"],
       default: "customer",
     },
+    avatar: {
+      type: String,
+      default: "",
+    },
     address: {
       type: addressSchema,
       required: [true, "Address is required"],

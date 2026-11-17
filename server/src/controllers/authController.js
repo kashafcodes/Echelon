@@ -29,6 +29,7 @@ export async function register(request, response) {
       confirmPassword,
       role = "customer",
       address,
+      avatar,
       // Vendor fields
       businessName,
       description,
@@ -138,6 +139,7 @@ export async function register(request, response) {
       phone: phone.trim(),
       password,
       role,
+      ...(avatar ? { avatar } : {}),
       address: {
         country: address.country?.trim() || "Nepal",
         province: address.province.trim(),
@@ -259,6 +261,7 @@ export async function getMe(request, response) {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        avatar: user.avatar || "",
         address: user.address,
         isActive: user.isActive,
         createdAt: user.createdAt,
@@ -299,11 +302,15 @@ export function logout(_request, response) {
 export async function updateProfile(request, response) {
   try {
     const user = request.user;
-    const { name, phone, address, businessName, description, category, businessAddress } =
+    const { name, phone, address, avatar, businessName, description, category, businessAddress } =
       request.body;
 
     if (name && name.trim()) user.name = name.trim();
     if (phone && phone.trim()) user.phone = phone.trim();
+
+    if (avatar !== undefined) {
+      user.avatar = typeof avatar === "string" ? avatar.trim() : "";
+    }
 
     if (address) {
       const addressError = validateAddress(address, "Address");
@@ -358,6 +365,7 @@ export async function updateProfile(request, response) {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        avatar: user.avatar || "",
         address: user.address,
         isActive: user.isActive,
       },
@@ -377,6 +385,63 @@ export async function updateProfile(request, response) {
     return response.status(500).json({
       ok: false,
       message: "Failed to update profile.",
+    });
+  }
+}
+
+/**
+ * POST /api/auth/profile/avatar
+ * Dedicated endpoint to upload or update profile picture
+ */
+export async function uploadAvatar(request, response) {
+  try {
+    const user = request.user;
+    const { avatar } = request.body;
+
+    if (!avatar || typeof avatar !== "string") {
+      return response.status(400).json({
+        ok: false,
+        message: "An image data URL or image string is required.",
+      });
+    }
+
+    user.avatar = avatar.trim();
+    await user.save();
+
+    return response.json({
+      ok: true,
+      message: "Profile picture uploaded successfully.",
+      avatar: user.avatar,
+    });
+  } catch (error) {
+    console.error("Upload avatar error:", error);
+    return response.status(500).json({
+      ok: false,
+      message: "Failed to upload profile picture.",
+    });
+  }
+}
+
+/**
+ * DELETE /api/auth/profile/avatar
+ * Removes the profile picture
+ */
+export async function removeAvatar(request, response) {
+  try {
+    const user = request.user;
+    user.avatar = "";
+    await user.save();
+
+    return response.json({
+      ok: true,
+      message: "Profile picture removed successfully.",
+      avatar: "",
+    });
+  } catch (error) {
+    console.error("Remove avatar error:", error);
+    return response.status(500).json({
+      ok: false,
+      message: "Failed to remove profile picture.",
     });
   }
 }

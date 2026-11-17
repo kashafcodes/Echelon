@@ -5,6 +5,8 @@ import {
   getMe,
   logout,
   updateProfile,
+  uploadAvatar,
+  removeAvatar,
   changePassword,
   getAdminUsers,
   updateVendorStatus,
@@ -21,6 +23,8 @@ router.post("/logout", logout);
 // Protected routes (any authenticated user)
 router.get("/me", authenticate, getMe);
 router.put("/profile", authenticate, updateProfile);
+router.post("/profile/avatar", authenticate, uploadAvatar);
+router.delete("/profile/avatar", authenticate, removeAvatar);
 router.put("/password", authenticate, changePassword);
 
 // Admin-only routes

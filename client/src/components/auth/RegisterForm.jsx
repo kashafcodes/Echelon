@@ -53,6 +53,21 @@ export default function RegisterForm({ initialRole = "customer", onSuccess, onSw
     landmark: "",
   });
 
+  // Avatar / profile picture
+  const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatar(reader.result);
+      setAvatarPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -121,6 +136,7 @@ export default function RegisterForm({ initialRole = "customer", onSuccess, onSw
       password,
       confirmPassword,
       address,
+      ...(avatar ? { avatar } : {}),
       ...(role === "vendor"
         ? {
             businessName: businessName.trim(),
@@ -172,6 +188,43 @@ export default function RegisterForm({ initialRole = "customer", onSuccess, onSw
 
       {/* Role Selection */}
       <RoleSelector role={role} onChange={setRole} disabled={loading} />
+
+      {/* Profile Picture (Optional) */}
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-charcoal/15 bg-sand flex items-center justify-center shrink-0">
+          {avatarPreview ? (
+            <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-charcoal/40 text-xs text-center leading-tight px-1">No Photo</span>
+          )}
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-semibold tracking-wider text-charcoal uppercase">
+            Profile Picture <span className="text-charcoal/40 normal-case font-normal">(optional)</span>
+          </label>
+          <label className="mt-1 cursor-pointer inline-block border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs text-charcoal hover:border-teal hover:text-teal transition-colors">
+            {avatarPreview ? "Change Photo" : "Choose Photo"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={loading}
+              onChange={handleAvatarChange}
+            />
+          </label>
+          {avatarPreview && (
+            <button
+              type="button"
+              onClick={() => { setAvatar(null); setAvatarPreview(null); }}
+              className="ml-2 text-xs text-vermilion hover:underline"
+              disabled={loading}
+            >
+              Remove
+            </button>
+          )}
+          <p className="mt-1 text-[11px] text-charcoal/50">JPG, PNG or GIF. Used as your public profile photo.</p>
+        </div>
+      </div>
 
       {/* Common Information */}
       <div className="grid gap-3 sm:grid-cols-2">

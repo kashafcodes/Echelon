@@ -86,6 +86,17 @@ export const authApi = {
       body: JSON.stringify(payload),
     }),
 
+  uploadAvatar: (avatar) =>
+    apiFetch("/api/auth/profile/avatar", {
+      method: "POST",
+      body: JSON.stringify({ avatar }),
+    }),
+
+  removeAvatar: () =>
+    apiFetch("/api/auth/profile/avatar", {
+      method: "DELETE",
+    }),
+
   changePassword: (payload) =>
     apiFetch("/api/auth/password", {
       method: "PUT",

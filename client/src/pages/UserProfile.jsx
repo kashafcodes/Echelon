@@ -6,7 +6,7 @@ import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 
 export default function UserProfile() {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout, refreshUser } = useAuth();
 
   // Profile fields
   const [name, setName] = useState(user?.name || "");
@@ -22,6 +22,11 @@ export default function UserProfile() {
   // States
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // Avatar states
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
   const [profileMsg, setProfileMsg] = useState("");
   const [profileErr, setProfileErr] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
@@ -55,6 +60,43 @@ export default function UserProfile() {
       setSavingProfile(false);
     }
   };
+
+  // Avatar handlers
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const dataUrl = reader.result;
+      try {
+        setAvatarUploading(true);
+        setAvatarError('');
+        await authApi.uploadAvatar({ avatar: dataUrl });
+        setAvatarPreview(dataUrl);
+        await refreshUser();
+      } catch (err) {
+        setAvatarError(err.message || 'Failed to upload avatar.');
+      } finally {
+        setAvatarUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      setAvatarUploading(true);
+      await authApi.removeAvatar();
+      setAvatarPreview(null);
+      await refreshUser();
+    } catch (err) {
+      setAvatarError(err.message || 'Failed to remove avatar.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -91,6 +133,8 @@ export default function UserProfile() {
       setSavingPassword(false);
     }
   };
+
+
 
   return (
     <div id="top" className="min-h-screen flex flex-col justify-between bg-ivory">
@@ -138,8 +182,31 @@ export default function UserProfile() {
           <div className="md:col-span-1 space-y-6">
             <div className="rounded border border-charcoal/15 bg-sand/40 p-6 shadow-xs">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full bg-teal text-ivory font-serif text-2xl flex items-center justify-center font-bold">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                <div className="h-14 w-14 rounded-full overflow-hidden bg-teal flex items-center justify-center">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-ivory font-serif text-2xl font-bold">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="cursor-pointer bg-teal text-ivory text-xs font-semibold py-1 px-2 rounded">
+                    {avatarUploading ? "Uploading..." : "Upload Avatar"}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} disabled={avatarUploading} />
+                  </label>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="bg-red-500 text-white text-xs font-semibold py-1 px-2 rounded"
+                      disabled={avatarUploading}
+                    >
+                      Remove
+                    </button>
+                  )}
+                  {avatarError && <p className="text-xs text-vermilion">{avatarError}</p>}
                 </div>
                 <div>
                   <h3 className="font-serif text-xl text-charcoal">{user?.name}</h3>

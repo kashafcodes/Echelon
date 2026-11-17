@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vermilion: #b9382b;
+  --color-terai: #f28c28;
+  --color-teal: #17665d;
+  --color-ivory: #fff5e8;
+  --color-charcoal: #292522;
+  --color-sand: #f3ede5;
+  --font-serif: "Fraunces", "Palatino Linotype", Palatino, serif;
+  --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+#crafts,
+#path,
+#mission,
+#creators {
+  scroll-margin-top: 5.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: #f28c28;
+  color: #292522;
+}
+
+/* Products Catalog Styles */
+.products-page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 5rem;
+}
+
+.products-heading {
+  margin-bottom: 2.5rem;
+}
+
+.products-heading p {
+  font-size: 0.875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.products-heading h1 {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  color: var(--color-charcoal);
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
+}
+
+.products-heading span {
+  font-size: 1.125rem;
+  color: rgba(41, 37, 34, 0.8);
+}
+
+.products-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.products-controls input {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(41, 37, 34, 0.25);
+  background: #ffffff;
+  font-size: 1rem;
+  color: var(--color-charcoal);
+  max-width: 26rem;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+.products-controls input:focus {
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 2px rgba(23, 102, 93, 0.2);
+}
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category-filters button {
+  padding: 0.5rem 1.125rem;
+  border: 1px solid rgba(41, 37, 34, 0.2);
+  background: transparent;
+  color: var(--color-charcoal);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.category-filters button:hover {
+  border-color: var(--color-charcoal);
+  background: rgba(41, 37, 34, 0.05);
+}
+
+.category-filters button.active {
+  background: var(--color-charcoal);
+  color: var(--color-ivory);
+  border-color: var(--color-charcoal);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.product-card {
+  background: #ffffff;
+  border: 1px solid rgba(41, 37, 34, 0.12);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(41, 37, 34, 0.08);
+}
+
+.product-image {
+  height: 220px;
+  background: var(--color-sand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(41, 37, 34, 0.5);
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(41, 37, 34, 0.08);
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.product-category {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.product-info h3 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  color: var(--color-charcoal);
+  margin: 0 0 0.5rem;
+}
+
+.product-artisan {
+  font-size: 0.875rem;
+  color: rgba(41, 37, 34, 0.7);
+  margin: 0 0 1.25rem;
+}
+
+.product-bottom {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(41, 37, 34, 0.08);
+}
+
+.product-price {
+  font-weight: 600;
+  color: var(--color-vermilion);
+  font-size: 1.125rem;
+}
+
+.view-product-btn {
+  background: var(--color-charcoal);
+  color: var(--color-ivory);
+  border: none;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.view-product-btn:hover {
+  background: var(--color-vermilion);
+}

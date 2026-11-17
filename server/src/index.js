@@ -3,7 +3,11 @@ import cors from "cors";
 import express from "express";
 import connectDB, { getDatabaseState } from "./db.js";
 import authRoutes from "./routes/authRoutes.js";
-import dotenv from 'dotenv'
+import productRoutes from "./routes/productRoutes.js";
+import vendorProductRoutes from "./routes/vendorProductRoutes.js";
+import adminProductRoutes from "./routes/adminProductRoutes.js";
+import { getCategories } from "./controllers/productController.js";
+import dotenv from "dotenv";
 
 // dotenv.config({ path: '/custom/path/to/.env' })
 dotenv.config({
@@ -37,6 +41,12 @@ app.get("/api/health", (_request, response) => {
 
 // Authentication routes
 app.use("/api/auth", authRoutes);
+
+// Category & Product routes
+app.get("/api/categories", getCategories);
+app.use("/api/products", productRoutes);
+app.use("/api/vendor/products", vendorProductRoutes);
+app.use("/api/admin/products", adminProductRoutes);
 
 // Global error handler
 app.use((error, _request, response, _next) => {

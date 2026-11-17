@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { CartProvider } from "./context/CartContext.jsx";
 import AuthModal from "./components/auth/AuthModal.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -124,7 +125,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
     </AuthProvider>
   );
 }

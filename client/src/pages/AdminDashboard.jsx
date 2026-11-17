@@ -1,30 +1,38 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { authApi } from "../services/api.js";
+import { authApi, adminProductApi } from "../services/api.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [data, setData] = useState({ users: [], vendors: [], counts: {} });
+  const [pendingProducts, setPendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
-  const [activeTab, setActiveTab] = useState("vendors"); // 'vendors' | 'users'
+  const [activeTab, setActiveTab] = useState("vendors"); // 'vendors' | 'users' | 'products'
 
   const loadAdminData = async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await authApi.getAdminUsers();
+      const [res, prodRes] = await Promise.all([
+        authApi.getAdminUsers(),
+        adminProductApi.getPending().catch(() => ({ ok: true, products: [] })),
+      ]);
+
       if (res?.ok) {
         setData({
           users: res.users || [],
           vendors: res.vendors || [],
           counts: res.counts || {},
         });
+      }
+      if (prodRes?.ok) {
+        setPendingProducts(prodRes.products || []);
       }
     } catch (err) {
       setError(err.message || "Failed to load administrative data.");
@@ -67,6 +75,41 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       setError(err.message || "Failed to update vendor status.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleApproveProduct = async (productId) => {
+    try {
+      setActionLoadingId(productId);
+      setActionMessage("");
+      const res = await adminProductApi.approve(productId);
+      if (res?.ok) {
+        setActionMessage(res.message);
+        setPendingProducts((prev) => prev.filter((p) => p._id !== productId));
+      }
+    } catch (err) {
+      setError(err.message || "Failed to approve product.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRejectProduct = async (productId) => {
+    const reason = window.prompt("Enter rejection reason for the artisan:", "Does not meet authentic Terai craftsmanship guidelines");
+    if (!reason || !reason.trim()) return;
+
+    try {
+      setActionLoadingId(productId);
+      setActionMessage("");
+      const res = await adminProductApi.reject(productId, reason.trim());
+      if (res?.ok) {
+        setActionMessage(res.message);
+        setPendingProducts((prev) => prev.filter((p) => p._id !== productId));
+      }
+    } catch (err) {
+      setError(err.message || "Failed to reject product.");
     } finally {
       setActionLoadingId(null);
     }
@@ -185,6 +228,22 @@ export default function AdminDashboard() {
           >
             Registered Users ({data.users.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("products")}
+            className={`pb-3 px-6 text-sm font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
+              activeTab === "products"
+                ? "border-b-2 border-vermilion text-vermilion"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            <span>Creations Review</span>
+            {pendingProducts.length > 0 && (
+              <span className="rounded-full bg-vermilion px-2 py-0.2 text-[10px] font-bold text-ivory">
+                {pendingProducts.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -277,6 +336,76 @@ export default function AdminDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        ) : activeTab === "products" ? (
+          <div className="mt-6 space-y-4">
+            {pendingProducts.length === 0 ? (
+              <div className="rounded border border-dashed border-charcoal/20 bg-sand/30 p-12 text-center">
+                <span className="text-3xl">✓</span>
+                <h4 className="mt-2 font-serif text-lg font-bold text-charcoal">
+                  All creations reviewed!
+                </h4>
+                <p className="mt-1 text-xs text-charcoal/70">
+                  There are no artisan products currently awaiting administrative review.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {pendingProducts.map((p) => (
+                  <div
+                    key={p._id}
+                    className="flex flex-col justify-between rounded border border-charcoal/15 bg-ivory p-5 shadow-xs"
+                  >
+                    <div>
+                      <div className="flex gap-4">
+                        <img
+                          src={p.images?.[0] || p.image || "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=150&auto=format&fit=crop&q=80"}
+                          alt={p.name}
+                          className="h-20 w-20 rounded object-cover border border-charcoal/15 shrink-0 bg-sand"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[10px] font-bold text-teal uppercase tracking-wider block">
+                            {p.category}
+                          </span>
+                          <h4 className="font-serif text-base font-bold text-charcoal truncate">
+                            {p.name}
+                          </h4>
+                          <p className="text-xs text-charcoal/70">
+                            By {p.userId?.name || p.vendorId?.businessName || "Artisan"} • {p.origin}
+                          </p>
+                          <p className="font-serif text-sm font-bold text-vermilion mt-1">
+                            Rs. {p.price?.toLocaleString()} • Stock: {p.quantity}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-xs text-charcoal/80 line-clamp-3 bg-sand/30 p-2.5 rounded">
+                        {p.description}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-charcoal/10 flex items-center justify-end gap-2.5">
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === p._id}
+                        onClick={() => handleRejectProduct(p._id)}
+                        className="rounded border border-vermilion px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-vermilion hover:bg-vermilion hover:text-ivory transition-colors disabled:opacity-50"
+                      >
+                        Reject...
+                      </button>
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === p._id}
+                        onClick={() => handleApproveProduct(p._id)}
+                        className="rounded bg-teal px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal transition-colors disabled:opacity-50"
+                      >
+                        {actionLoadingId === p._id ? "Approving..." : "Approve & Publish"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto rounded border border-charcoal/15 bg-ivory shadow-xs">

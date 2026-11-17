@@ -87,6 +87,36 @@ export const uploadBase64ToCloudinary = async (base64DataUrl, options = {}) => {
 };
 
 /**
+ * Upload a product image to Cloudinary without aggressive avatar face-cropping.
+ * @param {string} base64DataUrl - e.g. "data:image/jpeg;base64,..."
+ * @param {object} options - Optional upload options.
+ * @returns {object} Cloudinary upload response.
+ */
+export const uploadProductImageToCloudinary = async (base64DataUrl, options = {}) => {
+    if (!base64DataUrl || !base64DataUrl.startsWith("data:")) {
+        throw new Error("Invalid image data. Expected a Base64 Data URL.");
+    }
+
+    if (!isCloudinaryConfigured()) {
+        throw new Error("Cloudinary credentials are not configured in server/.env");
+    }
+
+    configureCloudinary();
+
+    const response = await cloudinary.uploader.upload(base64DataUrl, {
+        resource_type: "image",
+        folder: "lokart/products",
+        transformation: [
+            { width: 1200, height: 1200, crop: "limit" },
+            { quality: "auto", fetch_format: "auto" },
+        ],
+        ...options,
+    });
+
+    return response;
+};
+
+/**
  * Delete an image from Cloudinary by its public_id.
  * @param {string} publicId - The Cloudinary public_id of the asset to remove.
  * @returns {object} Cloudinary deletion result.

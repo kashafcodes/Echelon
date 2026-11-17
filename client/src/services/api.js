@@ -114,3 +114,71 @@ export const authApi = {
       body: JSON.stringify({ status }),
     }),
 };
+
+export const productApi = {
+  getProducts: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/products${qs ? `?${qs}` : ""}`);
+  },
+
+  getProductById: (id) => apiFetch(`/api/products/${id}`),
+
+  getFeatured: () => apiFetch("/api/products/featured"),
+
+  getRandom: (limit = 6, excludeId = null) => {
+    let url = `/api/products/random?limit=${limit}`;
+    if (excludeId) url += `&excludeId=${excludeId}`;
+    return apiFetch(url);
+  },
+
+  getCategories: () => apiFetch("/api/categories"),
+};
+
+export const vendorProductApi = {
+  createProduct: (payload) =>
+    apiFetch("/api/vendor/products", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getProducts: () => apiFetch("/api/vendor/products"),
+
+  getProductById: (id) => apiFetch(`/api/vendor/products/${id}`),
+
+  updateProduct: (id, payload) =>
+    apiFetch(`/api/vendor/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  togglePublish: (id) =>
+    apiFetch(`/api/vendor/products/${id}/publish`, {
+      method: "PATCH",
+    }),
+
+  deleteProduct: (id) =>
+    apiFetch(`/api/vendor/products/${id}`, {
+      method: "DELETE",
+    }),
+};
+
+export const adminProductApi = {
+  getPending: () => apiFetch("/api/admin/products/pending"),
+
+  approve: (id) =>
+    apiFetch(`/api/admin/products/${id}/approve`, {
+      method: "PATCH",
+    }),
+
+  reject: (id, reason) =>
+    apiFetch(`/api/admin/products/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+};

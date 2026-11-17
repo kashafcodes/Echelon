@@ -1,5 +1,6 @@
 import SiteFooter from "../components/SiteFooter.jsx";
 import SiteHeader from "../components/SiteHeader.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const crafts = [
   "Mithila Art",
@@ -32,6 +33,7 @@ const steps = [
 ];
 
 export default function HomePage() {
+  const { openRegister } = useAuth();
   return (
     <div id="top" className="min-h-screen">
       <a
@@ -56,12 +58,13 @@ export default function HomePage() {
               <a href="#products" className="bg-vermilion px-6 py-3 text-center text-ivory hover:bg-charcoal">
                 Explore Creations
               </a>
-              <a
-                href="#creators"
-                className="border border-charcoal px-6 py-3 text-center text-charcoal hover:bg-charcoal hover:text-ivory"
+              <button
+                type="button"
+                onClick={() => openRegister("vendor")}
+                className="border border-charcoal px-6 py-3 text-center text-charcoal hover:bg-charcoal hover:text-ivory transition-colors cursor-pointer"
               >
                 Become a Creator
-              </a>
+              </button>
             </div>
           </div>
           <aside className="flex flex-col justify-between bg-teal px-7 py-8 text-ivory md:min-h-80">
@@ -158,10 +161,16 @@ export default function HomePage() {
             <p className="text-sm tracking-[0.18em] text-teal uppercase">For creators</p>
             <h2 className="mt-3 font-serif text-4xl">Your craft. Your approval. Your orders.</h2>
             <p className="mt-4 leading-7 text-charcoal/80">
-              Artisans will manage listings from LokArt Studio. Helpers can prepare a listing only
-              with explicit consent, and they cannot approve or publish it. Studio sign-in is the
-              next part of the build. It is not available on this page yet.
+              Artisans manage verified listings from LokArt Studio. Helpers can prepare a listing
+              only with explicit consent, and they cannot publish it without artisan approval.
             </p>
+            <button
+              type="button"
+              onClick={() => openRegister("vendor")}
+              className="mt-6 inline-block bg-teal px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal transition-colors cursor-pointer"
+            >
+              Register as Artisan Partner
+            </button>
           </div>
         </section>
       </main>

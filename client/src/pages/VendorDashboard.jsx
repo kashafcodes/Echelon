@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import AddressForm from "../components/auth/AddressForm.jsx";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
+import ProductFormModal from "../components/ProductFormModal.jsx";
+import ConfirmationModal from "../components/ConfirmationModal.jsx";
+import { vendorProductApi } from "../services/api.js";
 
 const CATEGORIES = [
   "Mithila Art",
@@ -20,6 +23,7 @@ const CATEGORIES = [
 export default function VendorDashboard() {
   const { user, vendor, updateProfile, logout } = useAuth();
 
+  // Profile Edit State
   const [isEditing, setIsEditing] = useState(false);
   const [businessName, setBusinessName] = useState(vendor?.businessName || "");
   const [description, setDescription] = useState(vendor?.description || "");
@@ -32,12 +36,37 @@ export default function VendorDashboard() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // Product Management State
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [deletingProductId, setDeletingProductId] = useState(null);
+
   const status = vendor?.verificationStatus || "pending";
   const isApproved = status === "approved";
   const isPending = status === "pending";
-  const isRejected = status === "rejected";
 
-  const handleSave = async (e) => {
+  // Fetch Vendor Products
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoadingProducts(true);
+      const res = await vendorProductApi.getProducts();
+      if (res?.ok) {
+        setProducts(res.products || []);
+      }
+    } catch (err) {
+      console.warn("Failed to load vendor products:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMessage("");
@@ -59,11 +88,47 @@ export default function VendorDashboard() {
     }
   };
 
+  // Toggle publish state
+  const handleTogglePublish = async (productId) => {
+    try {
+      setMessage("");
+      const res = await vendorProductApi.togglePublish(productId);
+      if (res?.ok) {
+        setMessage(res.message);
+        loadProducts();
+      }
+    } catch (err) {
+      setError(err.message || "Failed to change publication status.");
+    }
+  };
+
+  // Delete product confirmation
+  const handleConfirmDelete = async () => {
+    if (!deletingProductId) return;
+    try {
+      setMessage("");
+      const res = await vendorProductApi.deleteProduct(deletingProductId);
+      if (res?.ok) {
+        setMessage("Product deleted from your catalog.");
+        loadProducts();
+      }
+    } catch (err) {
+      setError(err.message || "Failed to delete product.");
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
+  // Inventory Metrics
+  const activeCount = products.filter((p) => p.isPublished && p.status === "published").length;
+  const lowStockCount = products.filter((p) => p.quantity > 0 && p.quantity <= 5).length;
+  const outOfStockCount = products.filter((p) => p.quantity === 0).length;
+
   return (
     <div id="top" className="min-h-screen flex flex-col justify-between bg-ivory">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-6xl px-5 py-12 md:px-8">
+      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8 flex-1">
         {/* Top Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-charcoal/15 pb-6">
           <div>
@@ -85,32 +150,32 @@ export default function VendorDashboard() {
                 </span>
               )}
             </div>
-            <h1 className="mt-2 font-serif text-3xl text-charcoal md:text-4xl">
+            <h1 className="mt-2 font-serif text-3xl sm:text-4xl font-bold text-charcoal">
               {vendor?.businessName || user?.name + " Studio"}
             </h1>
-            <p className="mt-1 text-sm text-charcoal/80">
-              Artisan partner portal for managing traditional crafts, verification and workshop orders.
+            <p className="mt-1 text-xs sm:text-sm text-charcoal/80">
+              Artisan partner portal for managing traditional crafts, inventory quantity, and workshop listings.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <a
               href="#products"
-              className="border border-charcoal/30 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
+              className="border border-charcoal/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
             >
               Public Marketplace
             </a>
             <button
               type="button"
               onClick={logout}
-              className="border border-charcoal/30 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
+              className="border border-charcoal/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
             >
               Sign Out
             </button>
           </div>
         </div>
 
-        {/* Verification Status Banner */}
+        {/* Verification Alert Banners */}
         <div className="mt-6">
           {isPending ? (
             <div className="rounded border-2 border-terai bg-terai/10 p-5 text-charcoal shadow-xs">
@@ -118,71 +183,89 @@ export default function VendorDashboard() {
                 <span className="text-2xl leading-none text-terai">⚠️</span>
                 <div>
                   <h3 className="font-serif text-lg font-semibold text-charcoal">
-                    Vendor Verification Status: Pending Admin Review
+                    Vendor Verification: Under Administrator Review
                   </h3>
                   <p className="mt-1 text-xs text-charcoal/85 leading-relaxed">
                     Your artisan application has been submitted to LokArt administrators. To maintain
-                    authentic Terai craftsmanship and prevent unauthorized listings,{" "}
-                    <strong>a pending vendor must not publish products until verified and approved</strong>.
-                    Our team in Parsa will review your craft details shortly.
+                    authentic Terai craftsmanship, products you create remain in <strong>Pending Status</strong> until your studio is approved.
                   </p>
                 </div>
               </div>
             </div>
           ) : isApproved ? (
-            <div className="rounded border border-teal/40 bg-teal/10 p-5 text-charcoal shadow-xs">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl leading-none text-teal">✓</span>
+            <div className="rounded border border-teal/40 bg-teal/10 p-4 text-charcoal shadow-xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-xl text-teal">✓</span>
                 <div>
-                  <h3 className="font-serif text-lg font-semibold text-teal">
-                    Verification Approved — Verified Artisan Partner
-                  </h3>
-                  <p className="mt-1 text-xs text-charcoal/85 leading-relaxed">
-                    Your craft studio is officially verified on LokArt. You can publish authenticated
-                    creations, set prices, and receive direct cash-on-delivery orders from customers.
+                  <h4 className="font-serif text-sm font-bold text-teal">
+                    Verified LokArt Artisan Studio
+                  </h4>
+                  <p className="text-xs text-charcoal/80">
+                    Your workshop is verified. You can list creations, upload photos, manage inventory, and publish pieces directly to the public homepage.
                   </p>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="rounded border border-vermilion/40 bg-vermilion/10 p-5 text-charcoal shadow-xs">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl leading-none text-vermilion">✕</span>
-                <div>
-                  <h3 className="font-serif text-lg font-semibold text-vermilion">
-                    Verification Status: Application Rejected
-                  </h3>
-                  <p className="mt-1 text-xs text-charcoal/85 leading-relaxed">
-                    Your vendor application could not be verified with the provided information. Please
-                    update your business description or contact us at{" "}
-                    <a href="mailto:support@lokart.com" className="underline font-semibold">
-                      support@lokart.com
-                    </a>.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
 
+        {/* Status Messages */}
         {message ? (
-          <div className="mt-4 rounded border border-teal/30 bg-teal/10 p-4 text-sm text-teal">
-            {message}
+          <div className="mt-4 rounded border border-teal/30 bg-teal/10 p-3.5 text-xs font-semibold text-teal flex items-center justify-between">
+            <span>{message}</span>
+            <button type="button" onClick={() => setMessage("")} className="text-teal/70 hover:text-teal font-bold">✕</button>
           </div>
         ) : null}
         {error ? (
-          <div className="mt-4 rounded border border-vermilion/30 bg-vermilion/10 p-4 text-sm text-vermilion">
-            {error}
+          <div className="mt-4 rounded border border-vermilion/30 bg-vermilion/10 p-3.5 text-xs font-semibold text-vermilion flex items-center justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError("")} className="text-vermilion/70 hover:text-vermilion font-bold">✕</button>
           </div>
         ) : null}
 
+        {/* Inventory & Analytics Cards */}
+        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="rounded border border-charcoal/15 bg-sand/40 p-4">
+            <span className="text-[10px] uppercase font-bold text-charcoal/60 tracking-wider">
+              Total Creations
+            </span>
+            <p className="font-serif text-2xl font-bold text-charcoal mt-1">
+              {products.length}
+            </p>
+          </div>
+          <div className="rounded border border-charcoal/15 bg-sand/40 p-4">
+            <span className="text-[10px] uppercase font-bold text-teal tracking-wider">
+              Live in Store
+            </span>
+            <p className="font-serif text-2xl font-bold text-teal mt-1">
+              {activeCount}
+            </p>
+          </div>
+          <div className="rounded border border-charcoal/15 bg-sand/40 p-4">
+            <span className="text-[10px] uppercase font-bold text-terai tracking-wider">
+              Low Stock Alerts
+            </span>
+            <p className="font-serif text-2xl font-bold text-terai mt-1">
+              {lowStockCount}
+            </p>
+          </div>
+          <div className="rounded border border-charcoal/15 bg-sand/40 p-4">
+            <span className="text-[10px] uppercase font-bold text-vermilion tracking-wider">
+              Out of Stock
+            </span>
+            <p className="font-serif text-2xl font-bold text-vermilion mt-1">
+              {outOfStockCount}
+            </p>
+          </div>
+        </div>
+
         {/* Dashboard Grid */}
         <div className="mt-8 grid gap-8 md:grid-cols-3">
-          {/* Left Column: Vendor Profile */}
+          {/* Left Column: Studio Details */}
           <div className="md:col-span-1 space-y-6">
             <div className="rounded border border-charcoal/15 bg-sand/40 p-6 shadow-xs">
               <div className="flex items-center justify-between border-b border-charcoal/10 pb-3">
-                <h3 className="font-serif text-xl text-charcoal">Studio Details</h3>
+                <h3 className="font-serif text-xl font-bold text-charcoal">Studio Details</h3>
                 {!isEditing ? (
                   <button
                     type="button"
@@ -194,24 +277,24 @@ export default function VendorDashboard() {
                 ) : null}
               </div>
 
-              <div className="mt-4 space-y-3 text-sm">
+              <div className="mt-4 space-y-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-xs text-charcoal/60 uppercase tracking-wider block">
-                    Artisan Contact
+                  <span className="text-[10px] text-charcoal/60 uppercase tracking-wider block font-bold">
+                    Lead Artisan
                   </span>
                   <p className="font-medium text-charcoal">{user?.name}</p>
                   <p className="text-xs text-charcoal/70">{user?.phone}</p>
                   <p className="text-xs text-charcoal/70">{user?.email}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-charcoal/60 uppercase tracking-wider block">
-                    Product Category
+                  <span className="text-[10px] text-charcoal/60 uppercase tracking-wider block font-bold">
+                    Primary Craft Discipline
                   </span>
                   <p className="font-medium text-charcoal">{vendor?.category || "—"}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-charcoal/60 uppercase tracking-wider block">
-                    Craft Description
+                  <span className="text-[10px] text-charcoal/60 uppercase tracking-wider block font-bold">
+                    Craft Mission & Description
                   </span>
                   <p className="text-xs text-charcoal/80 leading-relaxed mt-1">
                     {vendor?.description || "No description provided."}
@@ -222,7 +305,7 @@ export default function VendorDashboard() {
 
             {/* Workshop Address Card */}
             <div className="rounded border border-charcoal/15 bg-sand/30 p-6 shadow-xs">
-              <h4 className="font-serif text-lg text-charcoal">Workshop Location</h4>
+              <h4 className="font-serif text-lg font-bold text-charcoal">Workshop Location</h4>
               <div className="mt-3 text-xs text-charcoal/80 space-y-1">
                 <p className="font-medium text-sm text-charcoal">
                   {vendor?.businessAddress?.street}, Ward {vendor?.businessAddress?.ward}
@@ -231,24 +314,19 @@ export default function VendorDashboard() {
                 <p>
                   {vendor?.businessAddress?.district}, {vendor?.businessAddress?.province}
                 </p>
-                {vendor?.businessAddress?.landmark ? (
-                  <p className="text-charcoal/60 italic">
-                    Near: {vendor?.businessAddress?.landmark}
-                  </p>
-                ) : null}
               </div>
             </div>
           </div>
 
-          {/* Right Column: Creations Management or Edit Form */}
+          {/* Right Column: Catalog Management or Profile Form */}
           <div className="md:col-span-2 space-y-6">
             {isEditing ? (
               <form
-                onSubmit={handleSave}
+                onSubmit={handleSaveProfile}
                 className="rounded border border-charcoal/15 bg-ivory p-6 shadow-xs space-y-5"
               >
                 <div className="flex items-center justify-between border-b border-charcoal/10 pb-3">
-                  <h3 className="font-serif text-2xl text-charcoal">Edit Studio Profile</h3>
+                  <h3 className="font-serif text-2xl font-bold text-charcoal">Edit Studio Profile</h3>
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
@@ -266,7 +344,7 @@ export default function VendorDashboard() {
                     type="text"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-none"
+                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-hidden"
                   />
                 </div>
 
@@ -277,7 +355,7 @@ export default function VendorDashboard() {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-none"
+                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-hidden"
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
@@ -295,7 +373,7 @@ export default function VendorDashboard() {
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-none"
+                    className="mt-1 w-full border border-charcoal/20 bg-ivory px-3.5 py-2 text-sm text-charcoal focus:border-teal focus:outline-hidden"
                   />
                 </div>
 
@@ -325,86 +403,186 @@ export default function VendorDashboard() {
                 </div>
               </form>
             ) : (
-              <>
-                {/* Product Publishing Section */}
-                <div className="rounded border border-charcoal/15 bg-ivory p-6 shadow-xs">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-charcoal/10 pb-4">
-                    <div>
-                      <h3 className="font-serif text-2xl text-charcoal">Your Craft Catalog</h3>
-                      <p className="text-xs text-charcoal/70">
-                        Manage products listed under {vendor?.businessName}.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={!isApproved}
-                      className={`px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-ivory transition-colors ${
-                        isApproved
-                          ? "bg-vermilion hover:bg-charcoal cursor-pointer"
-                          : "bg-charcoal/40 cursor-not-allowed"
-                      }`}
-                      title={
-                        !isApproved
-                          ? "Publishing is disabled until your artisan account is approved by admin"
-                          : ""
-                      }
-                    >
-                      + Add New Creation
-                    </button>
+              /* Products Management Section */
+              <div className="rounded border border-charcoal/15 bg-ivory p-6 shadow-xs space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-charcoal/10 pb-4">
+                  <div>
+                    <h3 className="font-serif text-2xl font-bold text-charcoal">Your Craft Catalog</h3>
+                    <p className="text-xs text-charcoal/70">
+                      Manage inventory quantities, photos, and public visibility.
+                    </p>
                   </div>
 
-                  {!isApproved ? (
-                    <div className="mt-8 border border-dashed border-terai/40 bg-sand/40 p-8 text-center rounded">
-                      <p className="text-sm font-semibold text-charcoal">
-                        Product Publishing Locked
-                      </p>
-                      <p className="mt-1 text-xs text-charcoal/70 max-w-md mx-auto leading-relaxed">
-                        To protect traditional artisans and ensure genuine creations, only verified
-                        vendors can list products. Once an administrator approves your studio, you will
-                        be able to add photos, descriptions, and prices.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-8 border border-dashed border-charcoal/20 p-8 text-center rounded">
-                      <p className="text-sm text-charcoal/80">No creations listed yet.</p>
-                      <p className="mt-1 text-xs text-charcoal/60">
-                        Click &ldquo;+ Add New Creation&rdquo; above to list your first traditional handcrafted
-                        product.
-                      </p>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setProductFormOpen(true);
+                    }}
+                    className="bg-vermilion hover:bg-charcoal text-ivory px-5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors shadow-2xs"
+                  >
+                    + Add New Creation
+                  </button>
                 </div>
 
-                {/* Sales Analytics Preview */}
-                <div className="rounded border border-charcoal/15 bg-sand/30 p-6 shadow-xs">
-                  <h4 className="font-serif text-xl text-charcoal">Studio Analytics</h4>
-                  <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                    <div className="rounded border border-charcoal/10 bg-ivory p-4">
-                      <span className="text-xs uppercase text-charcoal/60 tracking-wider">
-                        Active Listings
-                      </span>
-                      <p className="font-serif text-2xl text-charcoal mt-1">0</p>
-                    </div>
-                    <div className="rounded border border-charcoal/10 bg-ivory p-4">
-                      <span className="text-xs uppercase text-charcoal/60 tracking-wider">
-                        Pending Orders
-                      </span>
-                      <p className="font-serif text-2xl text-teal mt-1">0</p>
-                    </div>
-                    <div className="rounded border border-charcoal/10 bg-ivory p-4">
-                      <span className="text-xs uppercase text-charcoal/60 tracking-wider">
-                        Total Revenue
-                      </span>
-                      <p className="font-serif text-2xl text-vermilion mt-1">Rs. 0</p>
-                    </div>
+                {/* Product Items List */}
+                {loadingProducts ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-24 bg-sand/40 animate-pulse rounded border border-charcoal/10" />
+                    ))}
                   </div>
-                </div>
-              </>
+                ) : products.length === 0 ? (
+                  <div className="border border-dashed border-charcoal/20 p-8 text-center rounded bg-sand/20">
+                    <span className="text-3xl">🎨</span>
+                    <p className="text-sm font-semibold text-charcoal mt-2">No creations listed yet</p>
+                    <p className="mt-1 text-xs text-charcoal/60 max-w-sm mx-auto">
+                      Click &ldquo;+ Add New Creation&rdquo; above to list your first traditional handcrafted product.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-charcoal/10">
+                    {products.map((p) => {
+                      const isOutOfStock = p.quantity === 0;
+                      return (
+                        <div key={p._id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                          {/* Image & Basic Info */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={p.images?.[0] || p.image || "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=120&auto=format&fit=crop&q=80"}
+                              alt={p.name}
+                              className="h-16 w-16 rounded object-cover border border-charcoal/15 bg-sand shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-bold text-teal uppercase tracking-wider">
+                                  {p.category}
+                                </span>
+                                {/* Publication Status Pill */}
+                                <span
+                                  className={`rounded px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider ${
+                                    p.isPublished && p.status === "published"
+                                      ? "bg-teal/15 text-teal"
+                                      : p.status === "pending"
+                                        ? "bg-terai/20 text-terai"
+                                        : p.status === "rejected"
+                                          ? "bg-vermilion/15 text-vermilion"
+                                          : "bg-charcoal/10 text-charcoal/70"
+                                  }`}
+                                >
+                                  {p.isPublished && p.status === "published"
+                                    ? "● Live in Store"
+                                    : p.status === "pending"
+                                      ? "⏳ Pending Approval"
+                                      : p.status === "rejected"
+                                        ? "✕ Rejected"
+                                        : "Unpublished"}
+                                </span>
+
+                                {/* Stock Quantity Pill */}
+                                <span
+                                  className={`rounded px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider ${
+                                    isOutOfStock
+                                      ? "bg-vermilion/20 text-vermilion"
+                                      : p.quantity <= 5
+                                        ? "bg-terai/20 text-terai"
+                                        : "bg-charcoal/10 text-charcoal/70"
+                                  }`}
+                                >
+                                  Stock: {p.quantity} ({p.stockStatus || (isOutOfStock ? "Out of Stock" : "In Stock")})
+                                </span>
+                              </div>
+
+                              <h4 className="font-serif text-sm font-semibold text-charcoal truncate mt-0.5 max-w-xs">
+                                {p.name}
+                              </h4>
+                              <p className="text-xs font-bold text-vermilion mt-0.5">
+                                Rs. {p.price?.toLocaleString()}
+                              </p>
+
+                              {/* Rejection Reason display if rejected */}
+                              {p.status === "rejected" && p.rejectionReason && (
+                                <p className="text-[11px] text-vermilion mt-1 bg-vermilion/5 p-1 rounded">
+                                  Reason: {p.rejectionReason}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            {/* Publish / Unpublish Toggle (only enabled if vendor is approved) */}
+                            {isApproved && (
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePublish(p._id)}
+                                className={`rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                                  p.isPublished
+                                    ? "border border-charcoal/20 text-charcoal hover:bg-sand"
+                                    : "bg-teal text-ivory hover:bg-charcoal"
+                                }`}
+                                title={p.isPublished ? "Hide from public homepage" : "Make visible on homepage"}
+                              >
+                                {p.isPublished ? "Unpublish" : "Publish"}
+                              </button>
+                            )}
+
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingProduct(p);
+                                setProductFormOpen(true);
+                              }}
+                              className="border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-sand transition-colors rounded"
+                            >
+                              Edit
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={() => setDeletingProductId(p._id)}
+                              className="border border-vermilion/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-vermilion hover:bg-vermilion hover:text-ivory transition-colors rounded"
+                              title="Delete creation"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
       </main>
+
+      {/* Add / Edit Product Modal */}
+      <ProductFormModal
+        isOpen={productFormOpen}
+        product={editingProduct}
+        onClose={() => {
+          setProductFormOpen(false);
+          setEditingProduct(null);
+        }}
+        onSuccess={(msg) => {
+          setMessage(typeof msg === "string" ? msg : "Product saved successfully!");
+          loadProducts();
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deletingProductId)}
+        title="Delete Craft Creation"
+        message="Are you sure you want to delete this creation from your catalog? This action will remove it from the public marketplace and cannot be undone."
+        confirmText="Yes, Delete Product"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingProductId(null)}
+      />
 
       <SiteFooter />
     </div>

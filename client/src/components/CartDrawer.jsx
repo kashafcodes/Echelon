@@ -132,13 +132,12 @@ export default function CartDrawer() {
             <button
               type="button"
               onClick={() => {
-                alert(`Namaste! Your Cash-on-Delivery order for Rs. ${cartTotal.toLocaleString()} has been placed directly with the artisans. You will be contacted for delivery confirmation in Nepal.`);
-                clearCart();
                 setCartOpen(false);
+                window.location.hash = "#checkout";
               }}
               className="w-full bg-vermilion py-3 text-center text-xs font-semibold uppercase tracking-wider text-ivory hover:bg-charcoal transition-colors shadow-sm"
             >
-              Order via Cash on Delivery
+              Proceed to Checkout (COD)
             </button>
             <p className="text-[11px] text-center text-charcoal/60 leading-tight">
               100% authentic Terai craftsmanship. Payment collected at your doorstep.

@@ -10,11 +10,17 @@ import VendorDashboard from "./pages/VendorDashboard.jsx";
 import VendorProfile from "./pages/VendorProfile.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminProfile from "./pages/AdminProfile.jsx";
+import ProductDetailPage from "./pages/ProductDetailPage.jsx";
+import CheckoutPage from "./pages/CheckoutPage.jsx";
+import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
 
 function AppContent() {
   const { user } = useAuth();
   const [route, setRoute] = useState(() => {
     const hash = window.location.hash.toLowerCase();
+    if (hash.startsWith("#order-confirmation")) return "order-confirmation";
+    if (hash.startsWith("#checkout")) return "checkout";
+    if (hash.startsWith("#product") && !hash.startsWith("#products")) return "product-detail";
     if (hash.startsWith("#products")) return "products";
     if (hash.startsWith("#vendor") || hash.startsWith("#studio")) return "vendor";
     if (hash.startsWith("#admin")) return "admin";
@@ -33,7 +39,13 @@ function AppContent() {
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.toLowerCase();
-      if (hash.startsWith("#products")) {
+      if (hash.startsWith("#order-confirmation")) {
+        setRoute("order-confirmation");
+      } else if (hash.startsWith("#checkout")) {
+        setRoute("checkout");
+      } else if (hash.startsWith("#product") && !hash.startsWith("#products")) {
+        setRoute("product-detail");
+      } else if (hash.startsWith("#products")) {
         setRoute("products");
       } else if (hash.startsWith("#vendor") || hash.startsWith("#studio")) {
         setRoute("vendor");
@@ -94,6 +106,20 @@ function AppContent() {
     }
 
     switch (route) {
+      case "order-confirmation":
+        return (
+          <ProtectedRoute allowedRoles={["customer", "vendor", "admin"]}>
+            <OrderConfirmationPage />
+          </ProtectedRoute>
+        );
+      case "checkout":
+        return (
+          <ProtectedRoute allowedRoles={["customer", "vendor", "admin"]}>
+            <CheckoutPage />
+          </ProtectedRoute>
+        );
+      case "product-detail":
+        return <ProductDetailPage />;
       case "products":
         return <ProductsPage />;
       case "vendor":

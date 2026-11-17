@@ -182,3 +182,21 @@ export const adminProductApi = {
       body: JSON.stringify({ reason }),
     }),
 };
+
+export const orderApi = {
+  placeOrder: (payload) =>
+    apiFetch("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
+
+  getMyOrders: () => apiFetch("/api/orders/my"),
+
+  getOrderById: (id) => apiFetch(`/api/orders/${id}`),
+};
+
+export const vendorPublicApi = {
+  getProductsByVendor: (vendorId, { excludeId, limit = 8 } = {}) => {
+    const params = new URLSearchParams();
+    if (excludeId) params.append("excludeId", excludeId);
+    params.append("limit", limit);
+    return apiFetch(`/api/products/by-vendor/${vendorId}?${params}`);
+  },
+};

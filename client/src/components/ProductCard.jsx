@@ -18,10 +18,21 @@ export default function ProductCard({ product, onSelect }) {
   const artisanName = product.artisanName || product.vendor?.businessName || product.artisan || "Local Artisan";
   const origin = product.origin || product.vendor?.district || "Parsa, Terai";
 
+  const handleSelect = () => {
+    if (onSelect) {
+      onSelect(product);
+    } else {
+      window.location.hash = `#product?id=${product._id}`;
+    }
+  };
+
   return (
     <div className="group relative flex flex-col justify-between rounded border border-charcoal/15 bg-sand/30 hover:bg-sand/70 transition-all duration-200 hover:shadow-md hover:border-charcoal/30 overflow-hidden">
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full overflow-hidden bg-sand">
+      <div 
+        onClick={handleSelect}
+        className="relative aspect-square w-full overflow-hidden bg-sand cursor-pointer"
+      >
         <img
           src={primaryImage}
           alt={product.name}
@@ -84,7 +95,7 @@ export default function ProductCard({ product, onSelect }) {
 
           {/* Product Name */}
           <h3
-            onClick={() => onSelect && onSelect(product)}
+            onClick={handleSelect}
             className="font-serif text-base font-semibold text-charcoal hover:text-vermilion transition-colors line-clamp-2 cursor-pointer leading-snug"
             title={product.name}
           >
@@ -106,7 +117,7 @@ export default function ProductCard({ product, onSelect }) {
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => onSelect && onSelect(product)}
+              onClick={handleSelect}
               className="border border-charcoal/20 bg-ivory hover:bg-sand px-2.5 py-1.5 text-xs font-medium text-charcoal transition-colors"
               title="View product details"
             >

@@ -4,16 +4,12 @@ import SiteFooter from "../components/SiteFooter.jsx";
 import HeroSection from "../components/HeroSection.jsx";
 import CategorySection from "../components/CategorySection.jsx";
 import ProductCard from "../components/ProductCard.jsx";
-import ProductDetailModal from "../components/ProductDetailModal.jsx";
 import CartDrawer from "../components/CartDrawer.jsx";
 import { productApi } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function HomePage() {
   const { openRegister } = useAuth();
-
-  // Selected product for detail modal
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Featured products
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -195,7 +191,9 @@ export default function HomePage() {
                     <ProductCard
                       key={p._id}
                       product={p}
-                      onSelect={(prod) => setSelectedProduct(prod)}
+                      onSelect={(prod) => {
+                        window.location.hash = `#product?id=${prod._id}`;
+                      }}
                     />
                   ))}
                 </div>
@@ -321,7 +319,9 @@ export default function HomePage() {
                     <ProductCard
                       key={p._id}
                       product={p}
-                      onSelect={(prod) => setSelectedProduct(prod)}
+                      onSelect={(prod) => {
+                        window.location.hash = `#product?id=${prod._id}`;
+                      }}
                     />
                   ))}
                 </div>
@@ -389,7 +389,9 @@ export default function HomePage() {
                     <ProductCard
                       key={p._id}
                       product={p}
-                      onSelect={(prod) => setSelectedProduct(prod)}
+                      onSelect={(prod) => {
+                        window.location.hash = `#product?id=${prod._id}`;
+                      }}
                     />
                   ))}
                 </div>
@@ -431,14 +433,6 @@ export default function HomePage() {
 
       {/* Cart Drawer */}
       <CartDrawer />
-
-      {/* Product Detail Modal */}
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
 
       {/* Footer */}
       <SiteFooter />

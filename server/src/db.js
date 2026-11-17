@@ -1,43 +1,31 @@
-// import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 
-// let databaseState = "not_configured";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// export function getDatabaseState() {
-//   return databaseState;
-// }
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
 
+let databaseState = "disconnected";
 
-// export async function connectDatabase() {
-//   const uri = process.env.MONGODB_URI;
-
-//   if (!uri) {
-//     databaseState = "not_configured";
-//     console.log("MongoDB: not configured. Add MONGODB_URI to server/.env when Atlas is ready.");
-//     return;
-//   }
-
-//   try {
-//     await mongoose.connect(uri);
-//     databaseState = "connected";
-//     console.log("MongoDB: connected.");
-//   } catch (error) {
-//     databaseState = "error";
-//     console.error("MongoDB: connection failed.", error.message);
-//   }
-// }
-
-
-import mongoose from 'mongoose'
-
-
-const connectDB = async () => {
-  try {
-    // await mongoose.connect('mongodb+srv://power1ful88_db_user:cRE60pJ49MsS54xy@cluster0.tszr5ky.mongodb.net/')
-    await mongoose.connect('mongodb://127.0.0.1:27017/test');
-    onsole.log('Database connected');
-  } catch (error) {
-    console.log(error.message);
-  }
+export function getDatabaseState() {
+  return databaseState;
 }
 
-export default connectDB
+const connectDB = async () => {
+  const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/lokart";
+  try {
+    await mongoose.connect(uri);
+    databaseState = "connected";
+    const sanitized = uri.replace(/\/\/[^:]+:[^@]+@/, "//***:***@");
+    console.log(`MongoDB connected: ${sanitized}`);
+  } catch (error) {
+    databaseState = "error";
+    console.error("MongoDB connection failed:", error.message);
+  }
+};
+
+export default connectDB;

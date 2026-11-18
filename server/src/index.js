@@ -9,6 +9,8 @@ import adminProductRoutes from "./routes/adminProductRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import commissionRoutes from "./routes/commissionRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import artisanRoutes from "./routes/artisanRoutes.js";
+import storyRoutes from "./routes/storyRoutes.js";
 import { getCategories } from "./controllers/productController.js";
 import dotenv from "dotenv";
 
@@ -53,6 +55,8 @@ app.use("/api/admin/products", adminProductRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/commission", commissionRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/artisans", artisanRoutes);
+app.use("/api/stories", storyRoutes);
 
 // Global error handler
 app.use((error, _request, response, _next) => {

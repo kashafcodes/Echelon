@@ -282,3 +282,40 @@ export const aiApi = {
       body: JSON.stringify({ productName, description }),
     }),
 };
+
+export const artisanApi = {
+  getProfile: (vendorId) => apiFetch(`/api/artisans/${vendorId}`),
+  getProducts: (vendorId, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/artisans/${vendorId}/products${qs ? `?${qs}` : ""}`);
+  },
+};
+
+export const storyApi = {
+  getProductStory: (productId) => apiFetch(`/api/stories/product/${productId}`),
+  getMyStories: () => apiFetch("/api/stories/my-stories"),
+  createOrUpdateStory: (payload) =>
+    apiFetch("/api/stories", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateStory: (storyId, payload) =>
+    apiFetch(`/api/stories/${storyId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  togglePublish: (storyId) =>
+    apiFetch(`/api/stories/${storyId}/publish`, {
+      method: "PATCH",
+    }),
+  deleteStory: (storyId) =>
+    apiFetch(`/api/stories/${storyId}`, {
+      method: "DELETE",
+    }),
+};

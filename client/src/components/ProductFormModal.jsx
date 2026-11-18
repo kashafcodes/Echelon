@@ -37,6 +37,13 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
   const [images, setImages] = useState([]);
   const [imageError, setImageError] = useState("");
 
+  // Story Video / Image State (uploaded with product)
+  const [storyMediaType, setStoryMediaType] = useState("video"); // 'video' | 'image'
+  const [storyMediaUrl, setStoryMediaUrl] = useState("");
+  const [storyTitle, setStoryTitle] = useState("");
+  const [storyDescription, setStoryDescription] = useState("");
+  const [storyMediaError, setStoryMediaError] = useState("");
+
   // AI Translation State
   const [originalName, setOriginalName] = useState("");
   const [originalDescription, setOriginalDescription] = useState("");
@@ -89,6 +96,10 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
       setCustomizationAvailable(Boolean(product.customizationAvailable));
       setTags(Array.isArray(product.tags) ? product.tags.join(", ") : "");
       setImages(product.images || (product.image ? [product.image] : []));
+      setStoryMediaType(product.story?.mediaType || "video");
+      setStoryMediaUrl(product.story?.mediaUrl || "");
+      setStoryTitle(product.story?.title || "");
+      setStoryDescription(product.story?.description || "");
     } else {
       setName("");
       setDescription("");
@@ -108,9 +119,14 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
       setCustomizationAvailable(false);
       setTags("");
       setImages([]);
+      setStoryMediaType("video");
+      setStoryMediaUrl("");
+      setStoryTitle("");
+      setStoryDescription("");
     }
     setError("");
     setImageError("");
+    setStoryMediaError("");
     setTranslationResult(null);
     setTranslationNotice("");
   }, [product, isOpen]);
@@ -143,6 +159,42 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
 
   const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle Story Video or Image file selection
+  const handleStoryFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setStoryMediaError("");
+
+    const isVid = file.type.startsWith("video/");
+    const isImg = file.type.startsWith("image/");
+
+    if (!isVid && !isImg) {
+      setStoryMediaError("Only video (MP4, WebM, MOV) or photo files are supported for craft stories.");
+      return;
+    }
+
+    if (isVid && file.size > 50 * 1024 * 1024) {
+      setStoryMediaError("Story video must be under 50MB. Please select a shorter video clip.");
+      return;
+    }
+    if (isImg && file.size > 5 * 1024 * 1024) {
+      setStoryMediaError("Story image must be under 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setStoryMediaType(isVid ? "video" : "image");
+      setStoryMediaUrl(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeStoryMedia = () => {
+    setStoryMediaUrl("");
+    setStoryMediaError("");
   };
 
   // AI Translation Handlers
@@ -251,6 +303,14 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
         originalDescription: originalDescription.trim(),
         originalLanguage: originalLanguage.trim() || "en",
         translations: translations || {},
+        story: storyMediaUrl
+          ? {
+              mediaType: storyMediaType,
+              mediaUrl: storyMediaUrl,
+              title: storyTitle.trim() || `Craft Story: ${name.trim()}`,
+              description: storyDescription.trim() || description.trim(),
+            }
+          : null,
       };
 
       let res;
@@ -627,10 +687,133 @@ export default function ProductFormModal({ product, isOpen, onClose, onSuccess }
             </label>
           </div>
 
+          {/* Craft Story Video / Photo Section */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between border-b border-charcoal/10 pb-1">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-charcoal/80 flex items-center gap-1.5">
+                  <span>🎬</span>
+                  <span>4. Craft Story Video / Image</span>
+                  <span className="text-teal text-[10px] font-bold normal-case bg-teal/10 px-2 py-0.5 rounded-full border border-teal/20">
+                    Powers "View Story" Button
+                  </span>
+                </h4>
+              </div>
+              <span className="text-[11px] text-charcoal/50">Optional</span>
+            </div>
+
+            <p className="text-xs text-charcoal/70 leading-relaxed">
+              Upload a short workshop video clip or making photo showing how you handcrafted this piece.
+              Customers can click the <strong>"View Story"</strong> button on the craft's detail page to watch it!
+            </p>
+
+            {storyMediaError && (
+              <p className="text-xs text-vermilion font-medium">{storyMediaError}</p>
+            )}
+
+            {/* Story Media Preview */}
+            {storyMediaUrl ? (
+              <div className="rounded-lg border border-teal/40 bg-sand/30 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-charcoal/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-teal">
+                      {storyMediaType === "video" ? "🎬 Story Video Attached" : "📷 Story Photo Attached"}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeStoryMedia}
+                    className="text-xs text-vermilion hover:underline font-semibold cursor-pointer"
+                  >
+                    Remove Story Media
+                  </button>
+                </div>
+
+                <div className="relative aspect-video max-h-56 w-full rounded overflow-hidden bg-charcoal flex items-center justify-center">
+                  {storyMediaType === "video" ? (
+                    <video
+                      src={storyMediaUrl}
+                      controls
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={storyMediaUrl}
+                      alt="Story preview"
+                      className="h-full w-full object-contain"
+                    />
+                  )}
+                </div>
+
+                {/* Optional Story Title and Making Notes */}
+                <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-charcoal/80">
+                      Story Title / Heading
+                    </label>
+                    <input
+                      type="text"
+                      value={storyTitle}
+                      onChange={(e) => setStoryTitle(e.target.value)}
+                      placeholder="e.g. Hand-carving and painting the clay"
+                      className="mt-1 w-full rounded border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs text-charcoal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-charcoal/80">
+                      Making Notes / Process Description
+                    </label>
+                    <input
+                      type="text"
+                      value={storyDescription}
+                      onChange={(e) => setStoryDescription(e.target.value)}
+                      placeholder="e.g. Traditional natural pigments on handmade lokta paper"
+                      className="mt-1 w-full rounded border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs text-charcoal"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex flex-col items-center justify-center rounded border-2 border-dashed border-teal/40 bg-teal/5 p-4 text-center cursor-pointer hover:bg-teal/10 hover:border-teal transition-colors">
+                  <span className="text-2xl">🎬</span>
+                  <span className="mt-1.5 text-xs font-bold uppercase tracking-wider text-teal">
+                    Upload Story Video
+                  </span>
+                  <span className="mt-0.5 text-[10px] text-charcoal/60">
+                    MP4, WebM, MOV (Max 50MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    onChange={handleStoryFile}
+                    className="hidden"
+                  />
+                </label>
+
+                <label className="flex flex-col items-center justify-center rounded border-2 border-dashed border-charcoal/25 bg-sand/30 p-4 text-center cursor-pointer hover:border-teal hover:bg-sand/60 transition-colors">
+                  <span className="text-2xl">📷</span>
+                  <span className="mt-1.5 text-xs font-bold uppercase tracking-wider text-charcoal">
+                    Upload Story Photo
+                  </span>
+                  <span className="mt-0.5 text-[10px] text-charcoal/60">
+                    JPG, PNG, WebP (Max 5MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleStoryFile}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+
           {/* Craft Specifications (Optional) */}
           <div className="space-y-4 pt-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-charcoal/80 border-b border-charcoal/10 pb-1">
-              4. Craft Details & Specifications <span className="text-charcoal/50 font-normal">(Optional)</span>
+              5. Craft Details & Specifications <span className="text-charcoal/50 font-normal">(Optional)</span>
             </h4>
 
             <div className="grid sm:grid-cols-2 gap-4">

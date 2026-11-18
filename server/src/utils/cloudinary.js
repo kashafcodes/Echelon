@@ -117,17 +117,74 @@ export const uploadProductImageToCloudinary = async (base64DataUrl, options = {}
 };
 
 /**
- * Delete an image from Cloudinary by its public_id.
+ * Upload a story image to Cloudinary.
+ * @param {string} base64DataUrl - e.g. "data:image/jpeg;base64,..."
+ * @param {object} options - Optional upload options.
+ * @returns {object} Cloudinary upload response.
+ */
+export const uploadStoryImageToCloudinary = async (base64DataUrl, options = {}) => {
+    if (!base64DataUrl || !base64DataUrl.startsWith("data:")) {
+        throw new Error("Invalid image data. Expected a Base64 Data URL.");
+    }
+
+    if (!isCloudinaryConfigured()) {
+        throw new Error("Cloudinary credentials are not configured in server/.env");
+    }
+
+    configureCloudinary();
+
+    const response = await cloudinary.uploader.upload(base64DataUrl, {
+        resource_type: "image",
+        folder: "lokart/stories/images",
+        transformation: [
+            { width: 1280, height: 1280, crop: "limit" },
+            { quality: "auto", fetch_format: "auto" },
+        ],
+        ...options,
+    });
+
+    return response;
+};
+
+/**
+ * Upload a story video to Cloudinary.
+ * @param {string} base64DataUrl - e.g. "data:video/mp4;base64,..."
+ * @param {object} options - Optional upload options.
+ * @returns {object} Cloudinary upload response.
+ */
+export const uploadStoryVideoToCloudinary = async (base64DataUrl, options = {}) => {
+    if (!base64DataUrl || !base64DataUrl.startsWith("data:")) {
+        throw new Error("Invalid video data. Expected a Base64 Data URL.");
+    }
+
+    if (!isCloudinaryConfigured()) {
+        throw new Error("Cloudinary credentials are not configured in server/.env");
+    }
+
+    configureCloudinary();
+
+    const response = await cloudinary.uploader.upload(base64DataUrl, {
+        resource_type: "video",
+        folder: "lokart/stories/videos",
+        ...options,
+    });
+
+    return response;
+};
+
+/**
+ * Delete an asset (image or video) from Cloudinary by its public_id.
  * @param {string} publicId - The Cloudinary public_id of the asset to remove.
+ * @param {string} resourceType - 'image' or 'video' (default 'image').
  * @returns {object} Cloudinary deletion result.
  */
-export const deleteFromCloudinary = async (publicId) => {
+export const deleteFromCloudinary = async (publicId, resourceType = "image") => {
     if (!publicId) return null;
     if (!isCloudinaryConfigured()) return null;
 
     configureCloudinary();
     const result = await cloudinary.uploader.destroy(publicId, {
-        resource_type: "image",
+        resource_type: resourceType,
     });
     return result;
 };

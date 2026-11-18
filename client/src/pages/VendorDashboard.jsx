@@ -7,6 +7,7 @@ import ProductFormModal from "../components/ProductFormModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 import VendorOrdersSection from "../components/vendor/VendorOrdersSection.jsx";
 import VendorCommissionSection from "../components/vendor/VendorCommissionSection.jsx";
+import VendorStoriesSection from "../components/vendor/VendorStoriesSection.jsx";
 import { vendorProductApi, orderApi } from "../services/api.js";
 
 const CATEGORIES = [
@@ -210,6 +211,14 @@ export default function VendorDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            {vendor?._id && (
+              <a
+                href={`#artisan?id=${vendor._id}`}
+                className="border border-teal/40 bg-teal/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-teal hover:bg-teal hover:text-ivory transition-colors"
+              >
+                View Public Studio
+              </a>
+            )}
             <a
               href="#products"
               className="border border-charcoal/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
@@ -347,6 +356,17 @@ export default function VendorDashboard() {
           >
             <span>Artisan Earnings & Commission</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("stories")}
+            className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors flex items-center gap-2 ${
+              activeTab === "stories"
+                ? "border-b-2 border-vermilion text-vermilion font-bold"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            <span>Craft Stories</span>
+          </button>
         </div>
 
         {/* Tab 1: Orders Management View */}
@@ -407,6 +427,13 @@ export default function VendorDashboard() {
         {activeTab === "commission" && (
           <div className="mt-6">
             <VendorCommissionSection />
+          </div>
+        )}
+
+        {/* Tab 4: Craft Stories View */}
+        {activeTab === "stories" && (
+          <div className="mt-6">
+            <VendorStoriesSection products={products} />
           </div>
         )}
 

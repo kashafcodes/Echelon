@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCart } from "../context/CartContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { productApi, vendorPublicApi } from "../services/api.js";
+import { productApi, vendorPublicApi, storyApi } from "../services/api.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import StoryViewerModal from "../components/StoryViewerModal.jsx";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -228,6 +229,10 @@ export default function ProductDetailPage() {
   // Multilingual description state ("en" or "original")
   const [descLang, setDescLang] = useState("en");
 
+  // Story state
+  const [story, setStory] = useState(null);
+  const [storyModalOpen, setStoryModalOpen] = useState(false);
+
   // ── Watch hash changes (re-fetch when product id changes) ──────────────────
   useEffect(() => {
     function handleHash() {
@@ -265,6 +270,15 @@ export default function ProductDetailPage() {
       setProduct(p);
       setActiveImg(0);
       setQty(1);
+
+      // Fetch story for this product
+      storyApi
+        .getProductStory(p._id)
+        .then((r) => {
+          if (r?.ok && r.story) setStory(r.story);
+          else setStory(null);
+        })
+        .catch(() => setStory(null));
 
       // Fetch vendor products
       const vendorId = p.vendor?.id || p.vendorId;
@@ -362,6 +376,62 @@ export default function ProductDetailPage() {
     descLang === "original" && product?.originalDescription
       ? product.originalDescription
       : product?.description;
+
+  // Effective craft story: from storyApi, embedded in product, or craft presentation
+  const effectiveStory =
+    story ||
+    (product?.story?.mediaUrl
+      ? {
+          _id: product._id,
+          productId: product._id,
+          productName: product.name,
+          productPrice: product.price,
+          productImage: product.images?.[0] || "",
+          productCategory: product.category,
+          title: product.story.title || `The Making Story of ${product.name}`,
+          description: product.story.description || product.description,
+          media: [
+            {
+              type: product.story.mediaType || "video",
+              url: product.story.mediaUrl,
+              order: 0,
+            },
+          ],
+          artisan: {
+            vendorId: vendorId,
+            businessName: product.vendor?.businessName || artisanName,
+            name: artisanName,
+            avatar: product.artisanAvatar || "",
+            district: product.origin,
+          },
+        }
+      : product
+      ? {
+          _id: product._id,
+          productId: product._id,
+          productName: product.name,
+          productPrice: product.price,
+          productImage: product.images?.[0] || "",
+          productCategory: product.category,
+          title: `Craft Story: ${product.name}`,
+          description:
+            product.description +
+            (product.craftingMethod ? `\n\nCrafting Method: ${product.craftingMethod}` : "") +
+            (product.materials?.length ? `\n\nMaterials Used: ${product.materials.join(", ")}` : ""),
+          media: (product.images || []).map((img, idx) => ({
+            type: "image",
+            url: img,
+            order: idx,
+          })),
+          artisan: {
+            vendorId: vendorId,
+            businessName: product.vendor?.businessName || artisanName,
+            name: artisanName,
+            avatar: product.artisanAvatar || "",
+            district: product.origin,
+          },
+        }
+      : null);
 
   // Story section: has any story content?
   const hasStory =
@@ -537,22 +607,49 @@ export default function ProductDetailPage() {
                   </div>
 
                   {/* Artisan */}
-                  <div className="flex items-center gap-2.5 py-2 border-y border-charcoal/8 my-1">
-                    {product.artisanAvatar ? (
-                      <img
-                        src={product.artisanAvatar}
-                        alt={artisanName}
-                        className="w-9 h-9 rounded-full object-cover border border-charcoal/15"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-teal flex items-center justify-center text-ivory text-sm font-bold shrink-0">
-                        {getInitials(artisanName)}
+                  <div className="flex items-center justify-between gap-3 py-2.5 border-y border-charcoal/10 my-1">
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => vendorId && (window.location.hash = `#artisan?id=${vendorId}`)}
+                        className="group flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+                        title={vendorId ? `View ${artisanName}'s artisan profile` : ""}
+                      >
+                        {product.artisanAvatar ? (
+                          <img
+                            src={product.artisanAvatar}
+                            alt={artisanName}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-teal group-hover:border-vermilion transition-colors"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-teal group-hover:bg-vermilion flex items-center justify-center text-ivory text-sm font-bold shrink-0 transition-colors">
+                            {getInitials(artisanName)}
+                          </div>
+                        )}
+                      </button>
+
+                      <div className="text-left">
+                        <p className="text-[11px] text-charcoal/50 uppercase tracking-wider font-medium">Handcrafted by</p>
+                        <button
+                          type="button"
+                          onClick={() => vendorId && (window.location.hash = `#artisan?id=${vendorId}`)}
+                          className="text-sm font-semibold text-charcoal hover:text-vermilion transition-colors cursor-pointer text-left font-serif"
+                        >
+                          {artisanName}
+                        </button>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-xs text-charcoal/50 uppercase tracking-wider">Handcrafted by</p>
-                      <p className="text-sm font-semibold text-charcoal">{artisanName}</p>
                     </div>
+
+                    {/* View Story Button */}
+                    <button
+                      type="button"
+                      onClick={() => setStoryModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-vermilion/40 bg-vermilion/10 px-3.5 py-1.5 text-xs font-semibold text-vermilion hover:bg-vermilion hover:text-ivory transition-all cursor-pointer shadow-2xs hover:shadow-sm"
+                      title="Watch craft storytelling, making video or photos"
+                    >
+                      <span className="text-[10px]">▶</span>
+                      <span>View Story</span>
+                    </button>
                   </div>
 
                   {/* Short Description */}
@@ -1049,6 +1146,13 @@ export default function ProductDetailPage() {
           onClose={() => setLightboxOpen(false)}
         />
       )}
+
+      {/* Story Viewer Modal */}
+      <StoryViewerModal
+        story={effectiveStory}
+        isOpen={storyModalOpen}
+        onClose={() => setStoryModalOpen(false)}
+      />
     </div>
   );
 }

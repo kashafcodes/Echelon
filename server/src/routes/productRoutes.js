@@ -7,6 +7,7 @@ import {
   getCategories,
   getProductsByVendor,
 } from "../controllers/productController.js";
+import { getProductStory } from "../controllers/storyController.js";
 
 const router = express.Router();
 
@@ -19,6 +20,9 @@ router.get("/random", getRandomProducts);
 
 // Vendor's published products (must be before /:id to avoid conflict)
 router.get("/by-vendor/:vendorId", getProductsByVendor);
+
+// Product story route (must be before /:id to avoid conflict)
+router.get("/:productId/story", getProductStory);
 
 // Product list with search and filters
 router.get("/", getProducts);

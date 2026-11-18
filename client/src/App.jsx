@@ -11,6 +11,7 @@ import VendorProfile from "./pages/VendorProfile.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminProfile from "./pages/AdminProfile.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
+import ArtisanProfilePage from "./pages/ArtisanProfilePage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
 import MyOrdersPage from "./pages/MyOrdersPage.jsx";
@@ -28,6 +29,7 @@ function AppContent() {
     if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) return "my-orders";
     if (hash.startsWith("#order-confirmation")) return "order-confirmation";
     if (hash.startsWith("#checkout")) return "checkout";
+    if (hash.startsWith("#artisan")) return "artisan";
     if (hash.startsWith("#product") && !hash.startsWith("#products")) return "product-detail";
     if (hash.startsWith("#products")) return "products";
     if (hash.startsWith("#vendor") || hash.startsWith("#studio")) return "vendor";
@@ -61,6 +63,8 @@ function AppContent() {
         setRoute("order-confirmation");
       } else if (hash.startsWith("#checkout")) {
         setRoute("checkout");
+      } else if (hash.startsWith("#artisan")) {
+        setRoute("artisan");
       } else if (hash.startsWith("#product") && !hash.startsWith("#products")) {
         setRoute("product-detail");
       } else if (hash.startsWith("#products")) {
@@ -142,6 +146,8 @@ function AppContent() {
             <CheckoutPage />
           </ProtectedRoute>
         );
+      case "artisan":
+        return <ArtisanProfilePage />;
       case "product-detail":
         return <ProductDetailPage />;
       case "products":

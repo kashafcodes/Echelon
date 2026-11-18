@@ -136,6 +136,27 @@ const productSchema = new mongoose.Schema(
         description: { type: String, trim: true, default: "" },
       },
     },
+    story: {
+      mediaType: {
+        type: String,
+        enum: ["video", "image"],
+        default: "video",
+      },
+      mediaUrl: {
+        type: String,
+        default: "",
+      },
+      title: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      description: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
     isDeleted: {
       type: Boolean,
       default: false,

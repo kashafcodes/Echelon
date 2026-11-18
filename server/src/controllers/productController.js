@@ -1,7 +1,12 @@
 import Product from "../models/Product.js";
 import Vendor from "../models/Vendor.js";
 import Category from "../models/Category.js";
-import { uploadProductImageToCloudinary } from "../utils/cloudinary.js";
+import ProductStory from "../models/ProductStory.js";
+import {
+  uploadProductImageToCloudinary,
+  uploadStoryImageToCloudinary,
+  uploadStoryVideoToCloudinary,
+} from "../utils/cloudinary.js";
 
 // Default categories if database has none seeded
 const DEFAULT_CATEGORIES = [
@@ -373,6 +378,7 @@ export async function createVendorProduct(request, response) {
       originalDescription,
       originalLanguage,
       translations,
+      story,
     } = request.body;
 
     // Validations
@@ -424,6 +430,30 @@ export async function createVendorProduct(request, response) {
     const status = isVendorApproved ? "published" : "pending";
     const isPublished = isVendorApproved;
 
+    // Process craft story media if provided during product upload
+    let processedStory = {
+      mediaType: story?.mediaType || "video",
+      mediaUrl: story?.mediaUrl || "",
+      title: story?.title?.trim() || "",
+      description: story?.description?.trim() || "",
+    };
+
+    if (story?.mediaUrl && typeof story.mediaUrl === "string" && story.mediaUrl.startsWith("data:")) {
+      try {
+        if (story.mediaType === "image" || story.mediaUrl.startsWith("data:image/")) {
+          const up = await uploadStoryImageToCloudinary(story.mediaUrl);
+          processedStory.mediaUrl = up.secure_url;
+          processedStory.mediaType = "image";
+        } else {
+          const up = await uploadStoryVideoToCloudinary(story.mediaUrl);
+          processedStory.mediaUrl = up.secure_url;
+          processedStory.mediaType = "video";
+        }
+      } catch (storyErr) {
+        console.warn("[Story Upload] Cloudinary error:", storyErr.message);
+      }
+    }
+
     const newProduct = new Product({
       vendorId: vendor._id,
       userId: user._id,
@@ -444,11 +474,39 @@ export async function createVendorProduct(request, response) {
       originalDescription: originalDescription?.trim() || "",
       originalLanguage: originalLanguage?.trim() || "en",
       translations: translations && typeof translations === "object" ? translations : {},
+      story: processedStory,
       status,
       isPublished,
     });
 
     await newProduct.save();
+
+    // Synchronize with ProductStory collection if media is present
+    if (processedStory.mediaUrl) {
+      try {
+        await ProductStory.findOneAndUpdate(
+          { productId: newProduct._id },
+          {
+            vendorId: vendor._id,
+            userId: user._id,
+            productId: newProduct._id,
+            title: processedStory.title || `Craft Story: ${newProduct.name}`,
+            description: processedStory.description || newProduct.description,
+            media: [
+              {
+                type: processedStory.mediaType,
+                url: processedStory.mediaUrl,
+                order: 0,
+              },
+            ],
+            isPublished: true,
+          },
+          { upsert: true, new: true },
+        );
+      } catch (storySyncErr) {
+        console.warn("[ProductStory Sync] error:", storySyncErr.message);
+      }
+    }
 
     return response.status(201).json({
       ok: true,
@@ -564,6 +622,7 @@ export async function updateVendorProduct(request, response) {
       originalDescription,
       originalLanguage,
       translations,
+      story,
     } = request.body;
 
     if (name && name.trim()) product.name = name.trim();
@@ -621,6 +680,65 @@ export async function updateVendorProduct(request, response) {
     if (originalDescription !== undefined) product.originalDescription = originalDescription.trim();
     if (originalLanguage !== undefined) product.originalLanguage = originalLanguage.trim();
     if (translations !== undefined && typeof translations === "object") product.translations = translations;
+
+    // Handle craft story update if supplied
+    if (request.body.story !== undefined) {
+      const incomingStory = request.body.story;
+      if (!incomingStory || !incomingStory.mediaUrl) {
+        product.story = { mediaType: "video", mediaUrl: "", title: "", description: "" };
+      } else {
+        let updatedStory = {
+          mediaType: incomingStory.mediaType || "video",
+          mediaUrl: incomingStory.mediaUrl,
+          title: incomingStory.title?.trim() || "",
+          description: incomingStory.description?.trim() || "",
+        };
+
+        if (incomingStory.mediaUrl.startsWith("data:")) {
+          try {
+            if (incomingStory.mediaType === "image" || incomingStory.mediaUrl.startsWith("data:image/")) {
+              const up = await uploadStoryImageToCloudinary(incomingStory.mediaUrl);
+              updatedStory.mediaUrl = up.secure_url;
+              updatedStory.mediaType = "image";
+            } else {
+              const up = await uploadStoryVideoToCloudinary(incomingStory.mediaUrl);
+              updatedStory.mediaUrl = up.secure_url;
+              updatedStory.mediaType = "video";
+            }
+          } catch (storyErr) {
+            console.warn("[Story Update] Cloudinary error:", storyErr.message);
+          }
+        }
+
+        product.story = updatedStory;
+
+        if (updatedStory.mediaUrl) {
+          try {
+            await ProductStory.findOneAndUpdate(
+              { productId: product._id },
+              {
+                vendorId: vendor._id,
+                userId: request.user._id,
+                productId: product._id,
+                title: updatedStory.title || `Craft Story: ${product.name}`,
+                description: updatedStory.description || product.description,
+                media: [
+                  {
+                    type: updatedStory.mediaType,
+                    url: updatedStory.mediaUrl,
+                    order: 0,
+                  },
+                ],
+                isPublished: true,
+              },
+              { upsert: true, new: true },
+            );
+          } catch (syncErr) {
+            console.warn("[ProductStory Sync Update] error:", syncErr.message);
+          }
+        }
+      }
+    }
 
     await product.save();
 
@@ -852,7 +970,7 @@ export async function getProductsByVendor(request, response) {
 /**
  * Helper to format a single product for API output
  */
-function formatSingleProduct(p) {
+export function formatSingleProduct(p) {
   return {
     _id: p._id,
     name: p.name,
@@ -873,6 +991,7 @@ function formatSingleProduct(p) {
     originalDescription: p.originalDescription || "",
     originalLanguage: p.originalLanguage || "en",
     translations: p.translations || {},
+    story: p.story || null,
     featured: p.featured || false,
     isPublished: p.isPublished,
     status: p.status,

@@ -225,6 +225,9 @@ export default function ProductDetailPage() {
   // Artisan description expand
   const [artisanExpanded, setArtisanExpanded] = useState(false);
 
+  // Multilingual description state ("en" or "original")
+  const [descLang, setDescLang] = useState("en");
+
   // ── Watch hash changes (re-fetch when product id changes) ──────────────────
   useEffect(() => {
     function handleHash() {
@@ -233,6 +236,7 @@ export default function ProductDetailPage() {
         setProductId(id);
         setActiveImg(0);
         setQty(1);
+        setDescLang("en");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     }
@@ -345,6 +349,19 @@ export default function ProductDetailPage() {
       ? `${(product.weight / 1000).toFixed(2)} kg`
       : `${product.weight} g`
     : null;
+
+  // Multilingual description handling
+  const hasOriginal = Boolean(
+    product?.originalDescription &&
+      product.originalDescription.trim() !== "" &&
+      product.originalDescription !== product.description
+  );
+  const activeName =
+    descLang === "original" && product?.originalName ? product.originalName : product?.name;
+  const activeDescription =
+    descLang === "original" && product?.originalDescription
+      ? product.originalDescription
+      : product?.description;
 
   // Story section: has any story content?
   const hasStory =
@@ -493,7 +510,7 @@ export default function ProductDetailPage() {
 
                   {/* Product Name */}
                   <h1 className="font-serif text-3xl text-charcoal leading-tight">
-                    {product.name}
+                    {activeName}
                   </h1>
 
                   {/* Price */}
@@ -539,10 +556,45 @@ export default function ProductDetailPage() {
                   </div>
 
                   {/* Short Description */}
-                  {product.description && (
-                    <p className="text-sm text-charcoal/80 leading-relaxed">
-                      <ExpandableText text={product.description} maxChars={200} />
-                    </p>
+                  {activeDescription && (
+                    <div className="space-y-1.5">
+                      {hasOriginal && (
+                        <div className="flex items-center justify-between gap-2 flex-wrap pb-0.5">
+                          <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-sand/80 border border-charcoal/15 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => setDescLang("en")}
+                              className={`px-2.5 py-0.5 rounded-full font-semibold transition-all cursor-pointer ${
+                                descLang === "en"
+                                  ? "bg-teal text-white shadow-2xs"
+                                  : "text-charcoal/70 hover:text-charcoal"
+                              }`}
+                            >
+                              English
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDescLang("original")}
+                              className={`px-2.5 py-0.5 rounded-full font-semibold transition-all cursor-pointer ${
+                                descLang === "original"
+                                  ? "bg-teal text-white shadow-2xs"
+                                  : "text-charcoal/70 hover:text-charcoal"
+                              }`}
+                            >
+                              Original ({product.originalLanguage || "Nepali"})
+                            </button>
+                          </div>
+                          {descLang === "en" && (
+                            <span className="text-[10px] text-teal font-medium flex items-center gap-1">
+                              <span>✨</span> AI Translated
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-sm text-charcoal/80 leading-relaxed">
+                        <ExpandableText text={activeDescription} maxChars={200} />
+                      </p>
+                    </div>
                   )}
 
                   {/* Customization badge */}
@@ -610,13 +662,48 @@ export default function ProductDetailPage() {
                 {hasStory ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-8">
                     {/* Full Description */}
-                    {product.description && (
+                    {activeDescription && (
                       <div className="md:col-span-2">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-charcoal/50 mb-3">
-                          About This Piece
-                        </h3>
+                        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                          <h3 className="text-xs font-bold uppercase tracking-widest text-charcoal/50">
+                            About This Piece
+                          </h3>
+                          {hasOriginal && (
+                            <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-sand/80 border border-charcoal/15 text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setDescLang("en")}
+                                className={`px-2.5 py-0.5 rounded-full font-semibold transition-all cursor-pointer ${
+                                  descLang === "en"
+                                    ? "bg-teal text-white shadow-2xs"
+                                    : "text-charcoal/70 hover:text-charcoal"
+                                }`}
+                              >
+                                English
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDescLang("original")}
+                                className={`px-2.5 py-0.5 rounded-full font-semibold transition-all cursor-pointer ${
+                                  descLang === "original"
+                                    ? "bg-teal text-white shadow-2xs"
+                                    : "text-charcoal/70 hover:text-charcoal"
+                                }`}
+                              >
+                                Original ({product.originalLanguage || "Nepali"})
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {hasOriginal && (
+                          <p className="text-xs text-charcoal/50 mb-2.5 italic">
+                            {descLang === "en"
+                              ? "✨ Translated from the artisan's original words with AI. Switch tabs to read the original text."
+                              : "Showing original words written by the artisan."}
+                          </p>
+                        )}
                         <p className="text-sm text-charcoal/80 leading-relaxed whitespace-pre-line">
-                          {product.description}
+                          {activeDescription}
                         </p>
                       </div>
                     )}

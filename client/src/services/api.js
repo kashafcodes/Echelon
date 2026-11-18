@@ -274,3 +274,11 @@ export const commissionApi = {
     return apiFetch(`/api/commission/vendor/overview${qs ? `?${qs}` : ""}`);
   },
 };
+
+export const aiApi = {
+  translateProduct: ({ productName, description }) =>
+    apiFetch("/api/ai/translate-product", {
+      method: "POST",
+      body: JSON.stringify({ productName, description }),
+    }),
+};

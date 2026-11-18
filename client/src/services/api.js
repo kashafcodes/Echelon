@@ -1,119 +1,58 @@
+import api, { API_URL, getStoredToken, setStoredToken } from "../utils/api.js";
+
 /**
- * LokArt API Client
- * Sends cookies automatically and attaches Bearer token if present.
+ * LokArt Dynamic API Client powered by Axios & centralized in utils/api.js
+ * Automatically resolves dynamic backend URL, sends credentials/cookies,
+ * and attaches Bearer authorization token.
  */
 
-const API_BASE = "";
+export const API_BASE = API_URL;
+export const apiClient = api;
+export { getStoredToken, setStoredToken, api };
 
-export function getStoredToken() {
-  return localStorage.getItem("lokart_token");
-}
-
-export function setStoredToken(token) {
-  if (token) {
-    localStorage.setItem("lokart_token", token);
-  } else {
-    localStorage.removeItem("lokart_token");
-  }
-}
-
+/**
+ * Unified request adapter
+ */
 export async function apiFetch(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
+  const method = (options.method || "GET").toLowerCase();
+  let data = undefined;
 
-  const token = getStoredToken();
-  if (token && !headers.Authorization) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include", // For HTTP-only cookie support
-  });
-
-  let data = null;
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
+  if (options.body) {
     try {
-      data = await response.json();
+      data = typeof options.body === "string" ? JSON.parse(options.body) : options.body;
     } catch {
-      data = null;
+      data = options.body;
     }
   }
 
-  if (!response.ok) {
-    const errorMessage =
-      data?.message || `Request failed with status ${response.status}`;
-    const error = new Error(errorMessage);
-    error.status = response.status;
-    error.data = data;
-    throw error;
-  }
-
-  return data;
+  return api.request({
+    url: endpoint,
+    method,
+    data,
+    headers: options.headers,
+    params: options.params,
+  });
 }
 
+export default api;
+
+// ─── Authentication APIs ────────────────────────────────────────────────────────
+
 export const authApi = {
-  register: (payload) =>
-    apiFetch("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  login: (payload) =>
-    apiFetch("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  getMe: () =>
-    apiFetch("/api/auth/me", {
-      method: "GET",
-    }),
-
-  logout: () =>
-    apiFetch("/api/auth/logout", {
-      method: "POST",
-    }),
-
-  updateProfile: (payload) =>
-    apiFetch("/api/auth/profile", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
-
-  uploadAvatar: (avatar) =>
-    apiFetch("/api/auth/profile/avatar", {
-      method: "POST",
-      body: JSON.stringify({ avatar }),
-    }),
-
-  removeAvatar: () =>
-    apiFetch("/api/auth/profile/avatar", {
-      method: "DELETE",
-    }),
-
-  changePassword: (payload) =>
-    apiFetch("/api/auth/password", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
-
-  getAdminUsers: () =>
-    apiFetch("/api/auth/admin/users", {
-      method: "GET",
-    }),
-
+  register: (payload) => apiClient.post("/api/auth/register", payload),
+  login: (payload) => apiClient.post("/api/auth/login", payload),
+  getMe: () => apiClient.get("/api/auth/me"),
+  logout: () => apiClient.post("/api/auth/logout"),
+  updateProfile: (payload) => apiClient.put("/api/auth/profile", payload),
+  uploadAvatar: (avatar) => apiClient.post("/api/auth/profile/avatar", { avatar }),
+  removeAvatar: () => apiClient.delete("/api/auth/profile/avatar"),
+  changePassword: (payload) => apiClient.put("/api/auth/password", payload),
+  getAdminUsers: () => apiClient.get("/api/auth/admin/users"),
   updateVendorStatus: (vendorId, status) =>
-    apiFetch(`/api/auth/admin/vendors/${vendorId}/status`, {
-      method: "PUT",
-      body: JSON.stringify({ status }),
-    }),
+    apiClient.put(`/api/auth/admin/vendors/${vendorId}/status`, { status }),
 };
+
+// ─── Product Catalog APIs ───────────────────────────────────────────────────────
 
 export const productApi = {
   getProducts: (params = {}) => {
@@ -124,80 +63,46 @@ export const productApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/products${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/products${qs ? `?${qs}` : ""}`);
   },
 
-  getProductById: (id) => apiFetch(`/api/products/${id}`),
-
-  getFeatured: () => apiFetch("/api/products/featured"),
-
+  getProductById: (id) => apiClient.get(`/api/products/${id}`),
+  getFeatured: () => apiClient.get("/api/products/featured"),
   getRandom: (limit = 6, excludeId = null) => {
     let url = `/api/products/random?limit=${limit}`;
     if (excludeId) url += `&excludeId=${excludeId}`;
-    return apiFetch(url);
+    return apiClient.get(url);
   },
-
-  getCategories: () => apiFetch("/api/categories"),
+  getCategories: () => apiClient.get("/api/categories"),
 };
+
+// ─── Vendor Product Management APIs ─────────────────────────────────────────────
 
 export const vendorProductApi = {
-  createProduct: (payload) =>
-    apiFetch("/api/vendor/products", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-
-  getProducts: () => apiFetch("/api/vendor/products"),
-
-  getProductById: (id) => apiFetch(`/api/vendor/products/${id}`),
-
-  updateProduct: (id, payload) =>
-    apiFetch(`/api/vendor/products/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
-
-  togglePublish: (id) =>
-    apiFetch(`/api/vendor/products/${id}/publish`, {
-      method: "PATCH",
-    }),
-
-  deleteProduct: (id) =>
-    apiFetch(`/api/vendor/products/${id}`, {
-      method: "DELETE",
-    }),
+  createProduct: (payload) => apiClient.post("/api/vendor/products", payload),
+  getProducts: () => apiClient.get("/api/vendor/products"),
+  getProductById: (id) => apiClient.get(`/api/vendor/products/${id}`),
+  updateProduct: (id, payload) => apiClient.put(`/api/vendor/products/${id}`, payload),
+  togglePublish: (id) => apiClient.patch(`/api/vendor/products/${id}/publish`),
+  deleteProduct: (id) => apiClient.delete(`/api/vendor/products/${id}`),
 };
+
+// ─── Admin Product Moderation APIs ──────────────────────────────────────────────
 
 export const adminProductApi = {
-  getPending: () => apiFetch("/api/admin/products/pending"),
-
-  approve: (id) =>
-    apiFetch(`/api/admin/products/${id}/approve`, {
-      method: "PATCH",
-    }),
-
-  reject: (id, reason) =>
-    apiFetch(`/api/admin/products/${id}/reject`, {
-      method: "PATCH",
-      body: JSON.stringify({ reason }),
-    }),
+  getPending: () => apiClient.get("/api/admin/products/pending"),
+  approve: (id) => apiClient.patch(`/api/admin/products/${id}/approve`),
+  reject: (id, reason) => apiClient.patch(`/api/admin/products/${id}/reject`, { reason }),
 };
 
+// ─── Order Management APIs ──────────────────────────────────────────────────────
+
 export const orderApi = {
-  placeOrder: (payload) =>
-    apiFetch("/api/orders", { method: "POST", body: JSON.stringify(payload) }),
+  placeOrder: (payload) => apiClient.post("/api/orders", payload),
+  getMyOrders: () => apiClient.get("/api/orders/my"),
+  getOrderById: (id) => apiClient.get(`/api/orders/${id}`),
+  cancelOrder: (id, payload = {}) => apiClient.patch(`/api/orders/${id}/cancel`, payload),
 
-  getMyOrders: () => apiFetch("/api/orders/my"),
-
-  getOrderById: (id) => apiFetch(`/api/orders/${id}`),
-
-  cancelOrder: (id, payload = {}) =>
-    apiFetch(`/api/orders/${id}/cancel`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
-
-  // Vendor order management
   getVendorOrders: (params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
@@ -206,16 +111,12 @@ export const orderApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/orders/vendor/orders${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/orders/vendor/orders${qs ? `?${qs}` : ""}`);
   },
 
   updateVendorItemStatus: (orderId, itemId, payload) =>
-    apiFetch(`/api/orders/vendor/${orderId}/items/${itemId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+    apiClient.patch(`/api/orders/vendor/${orderId}/items/${itemId}/status`, payload),
 
-  // Admin order management
   getAdminOrders: (params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
@@ -224,33 +125,29 @@ export const orderApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/orders/admin/all${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/orders/admin/all${qs ? `?${qs}` : ""}`);
   },
 
   updatePaymentStatus: (orderId, payload) =>
-    apiFetch(`/api/orders/admin/${orderId}/payment-status`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+    apiClient.patch(`/api/orders/admin/${orderId}/payment-status`, payload),
 };
+
+// ─── Vendor Public Profile APIs ─────────────────────────────────────────────────
 
 export const vendorPublicApi = {
   getProductsByVendor: (vendorId, { excludeId, limit = 8 } = {}) => {
     const params = new URLSearchParams();
     if (excludeId) params.append("excludeId", excludeId);
     params.append("limit", limit);
-    return apiFetch(`/api/products/by-vendor/${vendorId}?${params}`);
+    return apiClient.get(`/api/products/by-vendor/${vendorId}?${params}`);
   },
 };
 
-export const commissionApi = {
-  getSettings: () => apiFetch("/api/commission/settings"),
+// ─── Commission Management APIs ─────────────────────────────────────────────────
 
-  updateSettings: (payload) =>
-    apiFetch("/api/commission/settings", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
+export const commissionApi = {
+  getSettings: () => apiClient.get("/api/commission/settings"),
+  updateSettings: (payload) => apiClient.put("/api/commission/settings", payload),
 
   getAdminOverview: (params = {}) => {
     const query = new URLSearchParams();
@@ -260,7 +157,7 @@ export const commissionApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/commission/admin/overview${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/commission/admin/overview${qs ? `?${qs}` : ""}`);
   },
 
   getVendorOverview: (params = {}) => {
@@ -271,20 +168,21 @@ export const commissionApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/commission/vendor/overview${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/commission/vendor/overview${qs ? `?${qs}` : ""}`);
   },
 };
 
+// ─── AI Multilingual Translation APIs ───────────────────────────────────────────
+
 export const aiApi = {
   translateProduct: ({ productName, description }) =>
-    apiFetch("/api/ai/translate-product", {
-      method: "POST",
-      body: JSON.stringify({ productName, description }),
-    }),
+    apiClient.post("/api/ai/translate-product", { productName, description }),
 };
 
+// ─── Artisan Public Studio APIs ─────────────────────────────────────────────────
+
 export const artisanApi = {
-  getProfile: (vendorId) => apiFetch(`/api/artisans/${vendorId}`),
+  getProfile: (vendorId) => apiClient.get(`/api/artisans/${vendorId}`),
   getProducts: (vendorId, params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
@@ -293,29 +191,17 @@ export const artisanApi = {
       }
     });
     const qs = query.toString();
-    return apiFetch(`/api/artisans/${vendorId}/products${qs ? `?${qs}` : ""}`);
+    return apiClient.get(`/api/artisans/${vendorId}/products${qs ? `?${qs}` : ""}`);
   },
 };
 
+// ─── Craft Storytelling APIs ────────────────────────────────────────────────────
+
 export const storyApi = {
-  getProductStory: (productId) => apiFetch(`/api/stories/product/${productId}`),
-  getMyStories: () => apiFetch("/api/stories/my-stories"),
-  createOrUpdateStory: (payload) =>
-    apiFetch("/api/stories", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  updateStory: (storyId, payload) =>
-    apiFetch(`/api/stories/${storyId}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    }),
-  togglePublish: (storyId) =>
-    apiFetch(`/api/stories/${storyId}/publish`, {
-      method: "PATCH",
-    }),
-  deleteStory: (storyId) =>
-    apiFetch(`/api/stories/${storyId}`, {
-      method: "DELETE",
-    }),
+  getProductStory: (productId) => apiClient.get(`/api/stories/product/${productId}`),
+  getMyStories: () => apiClient.get("/api/stories/my-stories"),
+  createOrUpdateStory: (payload) => apiClient.post("/api/stories", payload),
+  updateStory: (storyId, payload) => apiClient.put(`/api/stories/${storyId}`, payload),
+  togglePublish: (storyId) => apiClient.patch(`/api/stories/${storyId}/publish`),
+  deleteStory: (storyId) => apiClient.delete(`/api/stories/${storyId}`),
 };

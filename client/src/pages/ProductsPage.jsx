@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import ProductCard from "../components/ProductCard.jsx";
-import CartDrawer from "../components/CartDrawer.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import SiteHeader from "../components/SiteHeader.jsx";
 import { productApi } from "../services/api.js";
@@ -335,9 +334,6 @@ export default function ProductsPage() {
           </div>
         </div>
       </main>
-
-      {/* Cart Drawer */}
-      <CartDrawer />
 
       <SiteFooter />
     </div>

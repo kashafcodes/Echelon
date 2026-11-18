@@ -4,7 +4,6 @@ import SiteFooter from "../components/SiteFooter.jsx";
 import HeroSection from "../components/HeroSection.jsx";
 import CategorySection from "../components/CategorySection.jsx";
 import ProductCard from "../components/ProductCard.jsx";
-import CartDrawer from "../components/CartDrawer.jsx";
 import { productApi } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -430,9 +429,6 @@ export default function HomePage() {
           </div>
         </section>
       </main>
-
-      {/* Cart Drawer */}
-      <CartDrawer />
 
       {/* Footer */}
       <SiteFooter />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import { CartProvider } from "./context/CartContext.jsx";
+import { CartProvider, useCart } from "./context/CartContext.jsx";
 import AuthModal from "./components/auth/AuthModal.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -14,11 +14,17 @@ import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
 import MyOrdersPage from "./pages/MyOrdersPage.jsx";
+import CartDrawer from "./components/CartDrawer.jsx";
+import MobileBottomNav from "./components/MobileBottomNav.jsx";
 
 function AppContent() {
   const { user } = useAuth();
+  const { setCartOpen } = useCart();
   const [route, setRoute] = useState(() => {
     const hash = window.location.hash.toLowerCase();
+    if (hash.startsWith("#cart")) {
+      return "home";
+    }
     if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) return "my-orders";
     if (hash.startsWith("#order-confirmation")) return "order-confirmation";
     if (hash.startsWith("#checkout")) return "checkout";
@@ -39,9 +45,17 @@ function AppContent() {
   });
 
   useEffect(() => {
+    if (window.location.hash.toLowerCase().startsWith("#cart")) {
+      setCartOpen(true);
+    }
+  }, [setCartOpen]);
+
+  useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.toLowerCase();
-      if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) {
+      if (hash.startsWith("#cart")) {
+        setCartOpen(true);
+      } else if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) {
         setRoute("my-orders");
       } else if (hash.startsWith("#order-confirmation")) {
         setRoute("order-confirmation");
@@ -70,7 +84,7 @@ function AppContent() {
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [setCartOpen]);
 
   const handleRoleRedirect = (authedUser) => {
     if (authedUser.role === "admin") {
@@ -154,6 +168,8 @@ function AppContent() {
     <>
       <AuthModal onRoleRedirect={handleRoleRedirect} />
       {renderCurrentView()}
+      <CartDrawer />
+      <MobileBottomNav />
     </>
   );
 }

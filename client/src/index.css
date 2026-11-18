@@ -27,6 +27,13 @@ body {
   background: var(--color-ivory);
   color: var(--color-charcoal);
   font-family: var(--font-sans);
+  padding-bottom: 5.5rem;
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+  }
 }
 
 ::selection {

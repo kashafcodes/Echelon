@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Order, { computeOverallOrderStatus } from "../models/Order.js";
 import Vendor from "../models/Vendor.js";
@@ -7,7 +8,7 @@ import Vendor from "../models/Vendor.js";
  */
 const ALLOWED_TRANSITIONS = {
   placed: ["confirmed", "cancelled"],
-  confirmed: ["processing", "cancelled"],
+  confirmed: ["processing", "shipped", "cancelled"],
   processing: ["shipped", "cancelled"],
   shipped: ["delivered"], // Shipped cannot be cancelled or moved back
   delivered: [], // Terminal status
@@ -386,6 +387,7 @@ export async function getVendorOrders(request, response) {
     const [orders, totalCount] = await Promise.all([
       Order.find(matchQuery)
         .populate("customerId", "name email phone")
+        .populate("items.productId", "name category images image description price stockStatus quantity origin material dimensions weight")
         .sort(sortOption)
         .skip(skip)
         .limit(limitNum)
@@ -395,9 +397,42 @@ export async function getVendorOrders(request, response) {
 
     // Format orders for vendor view (highlighting this vendor's items)
     const formattedOrders = orders.map((order) => {
-      const vendorItems = order.items.filter(
-        (i) => i.vendorId.toString() === vendor._id.toString()
-      );
+      const vendorItems = (order.items || [])
+        .filter((i) => {
+          const vId = i.vendorId?._id
+            ? i.vendorId._id.toString()
+            : i.vendorId?.toString?.() || "";
+          return vId === vendor._id.toString();
+        })
+        .map((i, idx) => {
+          // With .lean() + .populate(), i._id is a MongoDB ObjectId object
+          // Always coerce it to a string so the frontend can use it safely
+          const itemId = i._id ? i._id.toString() : `item-fallback-${idx}`;
+          const productId = i.productId?._id
+            ? i.productId._id.toString()
+            : i.productId?.toString?.() || null;
+
+          return {
+            _id: itemId,
+            productId,
+            vendorId: i.vendorId?._id
+              ? i.vendorId._id.toString()
+              : i.vendorId?.toString?.() || null,
+            productName: i.productName || "",
+            productImage: i.productImage || "",
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            subtotal: i.subtotal,
+            orderStatus: i.orderStatus || "placed",
+            statusHistory: (i.statusHistory || []).map((h) => ({
+              status: h.status,
+              updatedAt: h.updatedAt,
+              note: h.note || "",
+            })),
+            cancellationReason: i.cancellationReason || "",
+          };
+        });
+
       const vendorSubtotal = vendorItems.reduce((acc, curr) => acc + curr.subtotal, 0);
 
       return {
@@ -406,10 +441,13 @@ export async function getVendorOrders(request, response) {
         createdAt: order.createdAt,
         customerName: order.deliveryAddress?.fullName || order.customerId?.name || "Customer",
         customerPhone: order.deliveryAddress?.phone || order.customerId?.phone || "",
+        customerEmail: order.customerId?.email || "",
         deliveryAddress: order.deliveryAddress,
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
         overallOrderStatus: order.orderStatus,
+        orderNotes: order.notes || "",
+        cancellationReason: order.cancellationReason || "",
         vendorItems,
         vendorSubtotal,
         totalItemsCount: vendorItems.reduce((acc, curr) => acc + curr.quantity, 0),

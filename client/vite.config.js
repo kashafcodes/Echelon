@@ -10,4 +10,11 @@ export default defineConfig({
       "/api": "http://localhost:5000",
     },
   },
+  // Required for @xenova/transformers (ONNX Runtime + Whisper)
+  optimizeDeps: {
+    exclude: ["@xenova/transformers"],
+  },
+  worker: {
+    format: "es",
+  },
 });

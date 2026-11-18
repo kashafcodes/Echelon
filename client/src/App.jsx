@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { CartProvider, useCart } from "./context/CartContext.jsx";
+import { AssistantProvider } from "./context/AssistantContext.jsx";
 import AuthModal from "./components/auth/AuthModal.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -16,6 +17,8 @@ import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
 import MyOrdersPage from "./pages/MyOrdersPage.jsx";
 import CartDrawer from "./components/CartDrawer.jsx";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
+import AssistantButton from "./components/assistant/AssistantButton.jsx";
+import AssistantDrawer from "./components/assistant/AssistantDrawer.jsx";
 
 function AppContent() {
   const { user } = useAuth();
@@ -170,6 +173,8 @@ function AppContent() {
       {renderCurrentView()}
       <CartDrawer />
       <MobileBottomNav />
+      <AssistantButton />
+      <AssistantDrawer />
     </>
   );
 }
@@ -178,7 +183,9 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <AppContent />
+        <AssistantProvider>
+          <AppContent />
+        </AssistantProvider>
       </CartProvider>
     </AuthProvider>
   );

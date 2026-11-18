@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Order, { computeOverallOrderStatus } from "../models/Order.js";
 import Vendor from "../models/Vendor.js";
+import CommissionSetting from "../models/CommissionSetting.js";
 
 /**
  * Valid Status Transitions for Vendors/Admins
@@ -46,6 +47,12 @@ export async function placeOrder(request, response) {
       }
     }
 
+    // Retrieve active global commission setting for order item snapshot
+    const commissionSetting = await CommissionSetting.getSettings();
+    const effectiveCommissionRate = commissionSetting.isEnabled
+      ? Number(commissionSetting.percentage) || 0
+      : 0;
+
     const orderItems = [];
     for (const item of items) {
       const { productId, quantity } = item;
@@ -77,6 +84,10 @@ export async function placeOrder(request, response) {
         });
       }
 
+      const itemSubtotal = product.price * qty;
+      const itemCommission = Math.round(((itemSubtotal * effectiveCommissionRate) / 100) * 100) / 100;
+      const itemVendorEarning = Math.round((itemSubtotal - itemCommission) * 100) / 100;
+
       orderItems.push({
         productId: product._id,
         vendorId: product.vendorId,
@@ -84,7 +95,10 @@ export async function placeOrder(request, response) {
         productImage: product.images?.[0] || "",
         quantity: qty,
         unitPrice: product.price,
-        subtotal: product.price * qty,
+        subtotal: itemSubtotal,
+        commissionPercentage: effectiveCommissionRate,
+        commissionAmount: itemCommission,
+        vendorEarning: itemVendorEarning,
         orderStatus: "placed",
         statusHistory: [
           {
@@ -423,6 +437,9 @@ export async function getVendorOrders(request, response) {
             quantity: i.quantity,
             unitPrice: i.unitPrice,
             subtotal: i.subtotal,
+            commissionPercentage: i.commissionPercentage ?? 0,
+            commissionAmount: i.commissionAmount ?? 0,
+            vendorEarning: i.vendorEarning ?? (i.subtotal - (i.commissionAmount ?? 0)),
             orderStatus: i.orderStatus || "placed",
             statusHistory: (i.statusHistory || []).map((h) => ({
               status: h.status,
@@ -434,6 +451,8 @@ export async function getVendorOrders(request, response) {
         });
 
       const vendorSubtotal = vendorItems.reduce((acc, curr) => acc + curr.subtotal, 0);
+      const vendorCommission = vendorItems.reduce((acc, curr) => acc + (curr.commissionAmount || 0), 0);
+      const vendorNetEarnings = vendorItems.reduce((acc, curr) => acc + (curr.vendorEarning || 0), 0);
 
       return {
         _id: order._id,
@@ -450,6 +469,8 @@ export async function getVendorOrders(request, response) {
         cancellationReason: order.cancellationReason || "",
         vendorItems,
         vendorSubtotal,
+        vendorCommission,
+        vendorNetEarnings,
         totalItemsCount: vendorItems.reduce((acc, curr) => acc + curr.quantity, 0),
       };
     });

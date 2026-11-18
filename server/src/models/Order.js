@@ -84,6 +84,22 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    commissionPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    commissionAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    vendorEarning: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     orderStatus: {
       type: String,
       enum: ["placed", "confirmed", "processing", "shipped", "delivered", "cancelled"],

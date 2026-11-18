@@ -242,3 +242,35 @@ export const vendorPublicApi = {
     return apiFetch(`/api/products/by-vendor/${vendorId}?${params}`);
   },
 };
+
+export const commissionApi = {
+  getSettings: () => apiFetch("/api/commission/settings"),
+
+  updateSettings: (payload) =>
+    apiFetch("/api/commission/settings", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  getAdminOverview: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/commission/admin/overview${qs ? `?${qs}` : ""}`);
+  },
+
+  getVendorOverview: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/commission/vendor/overview${qs ? `?${qs}` : ""}`);
+  },
+};

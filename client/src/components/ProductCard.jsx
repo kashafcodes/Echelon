@@ -103,24 +103,31 @@ export default function ProductCard({ product, onSelect }) {
           </h3>
         </div>
 
-        {/* Price & Action Row - Responsive Stacking on Mobile */}
-        <div className="pt-2 sm:pt-3 border-t border-charcoal/10 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+        {/* Price & Action Row - Clean stacked layout so price and buttons never overlap */}
+        <div className="pt-2 sm:pt-2.5 border-t border-charcoal/10 flex flex-col gap-2 mt-auto">
           {/* Price */}
-          <div className="min-w-0">
-            <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-charcoal/50 block">
-              Price (NPR)
-            </span>
-            <span className="font-serif text-sm sm:text-lg font-bold text-vermilion truncate block">
-              Rs. {product.price?.toLocaleString()}
-            </span>
+          <div className="flex items-baseline justify-between gap-1 min-w-0">
+            <div>
+              <span className="text-[9px] uppercase tracking-wider text-charcoal/50 block leading-none mb-0.5 font-medium">
+                Price
+              </span>
+              <span className="font-serif text-sm sm:text-base lg:text-lg font-bold text-vermilion truncate block leading-tight">
+                Rs. {product.price?.toLocaleString()}
+              </span>
+            </div>
+            {!isOutOfStock && product.quantity <= 5 && (
+              <span className="text-[9px] font-semibold text-terai shrink-0 leading-none">
+                {product.quantity} left
+              </span>
+            )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1 sm:gap-1.5 w-full sm:w-auto">
+          {/* Action Buttons Row */}
+          <div className="grid grid-cols-2 gap-1.5 w-full">
             <button
               type="button"
               onClick={handleSelect}
-              className="flex-1 sm:flex-none border border-charcoal/20 bg-ivory hover:bg-sand px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-charcoal transition-colors rounded text-center cursor-pointer whitespace-nowrap"
+              className="w-full border border-charcoal/20 bg-ivory hover:bg-sand px-1.5 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold text-charcoal transition-colors rounded text-center cursor-pointer truncate"
               title="View product details"
             >
               Details
@@ -132,7 +139,7 @@ export default function ProductCard({ product, onSelect }) {
                 e.stopPropagation();
                 addToCart(product, 1);
               }}
-              className="flex-1 sm:flex-none bg-vermilion hover:bg-charcoal disabled:opacity-40 text-ivory px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wider transition-colors rounded text-center cursor-pointer shadow-2xs whitespace-nowrap"
+              className="w-full bg-vermilion hover:bg-charcoal disabled:opacity-40 text-ivory px-1.5 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors rounded text-center cursor-pointer shadow-2xs truncate"
               title={isOutOfStock ? "Out of stock" : "Add to cart"}
             >
               + Cart

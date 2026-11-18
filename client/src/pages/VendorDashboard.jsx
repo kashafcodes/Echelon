@@ -6,6 +6,7 @@ import SiteFooter from "../components/SiteFooter.jsx";
 import ProductFormModal from "../components/ProductFormModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
 import VendorOrdersSection from "../components/vendor/VendorOrdersSection.jsx";
+import VendorCommissionSection from "../components/vendor/VendorCommissionSection.jsx";
 import { vendorProductApi, orderApi } from "../services/api.js";
 
 const CATEGORIES = [
@@ -335,6 +336,17 @@ export default function VendorDashboard() {
               </span>
             ) : null}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("commission")}
+            className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors flex items-center gap-2 ${
+              activeTab === "commission"
+                ? "border-b-2 border-vermilion text-vermilion font-bold"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            <span>Artisan Earnings & Commission</span>
+          </button>
         </div>
 
         {/* Tab 1: Orders Management View */}
@@ -388,6 +400,13 @@ export default function VendorDashboard() {
               onUpdateStatus={handleUpdateItemStatus}
               loading={loadingOrders}
             />
+          </div>
+        )}
+
+        {/* Tab 3: Commission & Earnings View */}
+        {activeTab === "commission" && (
+          <div className="mt-6">
+            <VendorCommissionSection />
           </div>
         )}
 

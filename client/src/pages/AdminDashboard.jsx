@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { authApi, adminProductApi, orderApi } from "../services/api.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
+import AdminCommissionSection from "../components/admin/AdminCommissionSection.jsx";
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -313,12 +314,27 @@ export default function AdminDashboard() {
               </span>
             )}
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("commission")}
+            className={`pb-3 px-6 text-sm font-semibold uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
+              activeTab === "commission"
+                ? "border-b-2 border-vermilion text-vermilion font-bold"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            <span>Commission & Revenue</span>
+          </button>
         </div>
 
         {/* Tab Content */}
         {loading ? (
           <div className="py-20 text-center text-sm text-charcoal/60">
             Loading administrative data...
+          </div>
+        ) : activeTab === "commission" ? (
+          <div className="mt-6">
+            <AdminCommissionSection />
           </div>
         ) : activeTab === "orders" ? (
           /* Platform Orders Management */

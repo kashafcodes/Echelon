@@ -180,6 +180,10 @@ export async function getProducts(request, response) {
       customizationAvailable: p.customizationAvailable || false,
       origin: p.origin || "Parsa, Terai, Nepal",
       tags: p.tags || [],
+      originalName: p.originalName || "",
+      originalDescription: p.originalDescription || "",
+      originalLanguage: p.originalLanguage || "en",
+      translations: p.translations || {},
       featured: p.featured || false,
       createdAt: p.createdAt,
       vendor: p.vendorId
@@ -365,6 +369,10 @@ export async function createVendorProduct(request, response) {
       customizationAvailable,
       origin,
       tags,
+      originalName,
+      originalDescription,
+      originalLanguage,
+      translations,
     } = request.body;
 
     // Validations
@@ -432,6 +440,10 @@ export async function createVendorProduct(request, response) {
       customizationAvailable: Boolean(customizationAvailable),
       origin: origin?.trim() || (vendor.businessAddress?.district ? `${vendor.businessAddress.district}, Terai, Nepal` : "Parsa, Terai, Nepal"),
       tags: Array.isArray(tags) ? tags : typeof tags === "string" ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      originalName: originalName?.trim() || "",
+      originalDescription: originalDescription?.trim() || "",
+      originalLanguage: originalLanguage?.trim() || "en",
+      translations: translations && typeof translations === "object" ? translations : {},
       status,
       isPublished,
     });
@@ -548,6 +560,10 @@ export async function updateVendorProduct(request, response) {
       customizationAvailable,
       origin,
       tags,
+      originalName,
+      originalDescription,
+      originalLanguage,
+      translations,
     } = request.body;
 
     if (name && name.trim()) product.name = name.trim();
@@ -601,6 +617,10 @@ export async function updateVendorProduct(request, response) {
     if (tags !== undefined) {
       product.tags = Array.isArray(tags) ? tags : typeof tags === "string" ? tags.split(",").map((t) => t.trim()).filter(Boolean) : [];
     }
+    if (originalName !== undefined) product.originalName = originalName.trim();
+    if (originalDescription !== undefined) product.originalDescription = originalDescription.trim();
+    if (originalLanguage !== undefined) product.originalLanguage = originalLanguage.trim();
+    if (translations !== undefined && typeof translations === "object") product.translations = translations;
 
     await product.save();
 
@@ -849,6 +869,10 @@ function formatSingleProduct(p) {
     customizationAvailable: p.customizationAvailable || false,
     origin: p.origin || "Parsa, Terai, Nepal",
     tags: p.tags || [],
+    originalName: p.originalName || "",
+    originalDescription: p.originalDescription || "",
+    originalLanguage: p.originalLanguage || "en",
+    translations: p.translations || {},
     featured: p.featured || false,
     isPublished: p.isPublished,
     status: p.status,

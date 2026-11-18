@@ -115,6 +115,27 @@ const productSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    originalName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    originalDescription: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    originalLanguage: {
+      type: String,
+      trim: true,
+      default: "en",
+    },
+    translations: {
+      en: {
+        name: { type: String, trim: true, default: "" },
+        description: { type: String, trim: true, default: "" },
+      },
+    },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -135,10 +156,12 @@ productSchema.pre("save", function () {
   }
 });
 
-// Text index for full search capability
+// Text index for full search capability (supports English and original language search)
 productSchema.index({
   name: "text",
   description: "text",
+  originalName: "text",
+  originalDescription: "text",
   category: "text",
   origin: "text",
   materials: "text",

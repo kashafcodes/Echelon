@@ -190,6 +190,15 @@ export default function SiteHeader() {
                   </span>
                 </a>
 
+                {/* My Orders link */}
+                <a
+                  href="#my-orders"
+                  className="rounded border border-charcoal/20 bg-ivory px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-charcoal hover:border-teal hover:text-teal transition-colors"
+                  title="Track My Orders"
+                >
+                  My Orders
+                </a>
+
                 <button
                   type="button"
                   onClick={logout}
@@ -331,6 +340,13 @@ export default function SiteHeader() {
                   className="border border-charcoal/30 py-2 text-center text-xs font-semibold uppercase tracking-wider text-charcoal"
                 >
                   My Profile & Settings
+                </a>
+                <a
+                  href="#my-orders"
+                  onClick={closeMenu}
+                  className="bg-sand border border-charcoal/30 py-2 text-center text-xs font-semibold uppercase tracking-wider text-charcoal hover:text-teal"
+                >
+                  My Orders & Tracking
                 </a>
               </>
             ) : (

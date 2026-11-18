@@ -5,7 +5,8 @@ import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import ProductFormModal from "../components/ProductFormModal.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
-import { vendorProductApi } from "../services/api.js";
+import VendorOrdersSection from "../components/vendor/VendorOrdersSection.jsx";
+import { vendorProductApi, orderApi } from "../services/api.js";
 
 const CATEGORIES = [
   "Mithila Art",
@@ -46,6 +47,55 @@ export default function VendorDashboard() {
   const status = vendor?.verificationStatus || "pending";
   const isApproved = status === "approved";
   const isPending = status === "pending";
+
+  // Dashboard Tab State
+  const [activeTab, setActiveTab] = useState("catalog"); // 'catalog' | 'orders'
+
+  // Vendor Orders State
+  const [orders, setOrders] = useState([]);
+  const [orderCounts, setOrderCounts] = useState({});
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSort, setOrderSort] = useState("newest");
+
+  // Fetch Vendor Orders
+  const loadOrders = useCallback(async () => {
+    try {
+      setLoadingOrders(true);
+      const res = await orderApi.getVendorOrders({
+        status: orderStatusFilter,
+        search: orderSearch,
+        sort: orderSort,
+      });
+      if (res?.ok) {
+        setOrders(res.orders || []);
+        setOrderCounts(res.counts || {});
+      }
+    } catch (err) {
+      console.warn("Failed to load vendor orders:", err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [orderStatusFilter, orderSearch, orderSort]);
+
+  // Initial and periodic fetch of orders to power new order notification alerts
+  useEffect(() => {
+    loadOrders();
+    // Poll every 30 seconds for new customer orders
+    const timer = setInterval(() => {
+      loadOrders();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [loadOrders]);
+
+  const handleUpdateItemStatus = async (orderId, itemId, payload) => {
+    const res = await orderApi.updateVendorItemStatus(orderId, itemId, payload);
+    if (res?.ok) {
+      setMessage(res.message);
+      loadOrders();
+    }
+  };
 
   // Fetch Vendor Products
   const loadProducts = useCallback(async () => {
@@ -223,8 +273,129 @@ export default function VendorDashboard() {
           </div>
         ) : null}
 
-        {/* Inventory & Analytics Cards */}
-        <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* Real-time New Orders Alert Banner */}
+        {orderCounts.placed > 0 && (
+          <div className="mt-6 rounded border-2 border-vermilion bg-vermilion/10 p-4 text-charcoal shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-vermilion text-ivory text-xl font-bold animate-bounce">
+                🔔
+              </span>
+              <div>
+                <h4 className="font-serif text-base font-bold text-vermilion">
+                  You have {orderCounts.placed} new customer order{orderCounts.placed > 1 ? "s" : ""} awaiting confirmation!
+                </h4>
+                <p className="text-xs text-charcoal/80">
+                  Customers have purchased items crafted by your studio. Please review and confirm them to commence processing.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("orders");
+                setOrderStatusFilter("placed");
+              }}
+              className="bg-vermilion hover:bg-charcoal text-ivory px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded transition-colors shadow-xs whitespace-nowrap self-start sm:self-auto"
+            >
+              Review New Orders ({orderCounts.placed})
+            </button>
+          </div>
+        )}
+
+        {/* Dashboard Navigation Tabs */}
+        <div className="mt-8 flex items-center gap-4 border-b border-charcoal/15 pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("catalog")}
+            className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors ${
+              activeTab === "catalog"
+                ? "border-b-2 border-vermilion text-vermilion font-bold"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            Craft Creations Catalog ({products.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("orders")}
+            className={`pb-3 text-sm font-semibold uppercase tracking-wider transition-colors flex items-center gap-2 ${
+              activeTab === "orders"
+                ? "border-b-2 border-vermilion text-vermilion font-bold"
+                : "text-charcoal/60 hover:text-charcoal"
+            }`}
+          >
+            <span>Customer Orders</span>
+            {orderCounts.placed > 0 ? (
+              <span className="rounded-full bg-vermilion px-2 py-0.5 text-[10px] font-bold text-ivory animate-pulse">
+                {orderCounts.placed} NEW
+              </span>
+            ) : orderCounts.total > 0 ? (
+              <span className="rounded-full bg-teal px-2 py-0.5 text-[10px] font-bold text-ivory">
+                {orderCounts.total}
+              </span>
+            ) : null}
+          </button>
+        </div>
+
+        {/* Tab 1: Orders Management View */}
+        {activeTab === "orders" && (
+          <div className="mt-6 space-y-6">
+            {/* Orders Filter & Search Controls */}
+            <div className="rounded border border-charcoal/15 bg-sand/30 p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Search by order number..."
+                  className="rounded border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs text-charcoal focus:border-teal focus:outline-none w-56"
+                />
+                <select
+                  value={orderStatusFilter}
+                  onChange={(e) => setOrderStatusFilter(e.target.value)}
+                  className="rounded border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs font-semibold text-charcoal focus:border-teal focus:outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="placed">Placed (New)</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select
+                  value={orderSort}
+                  onChange={(e) => setOrderSort(e.target.value)}
+                  className="rounded border border-charcoal/20 bg-ivory px-3 py-1.5 text-xs font-semibold text-charcoal focus:border-teal focus:outline-none"
+                >
+                  <option value="newest">Sort: Newest First</option>
+                  <option value="oldest">Sort: Oldest First</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={loadOrders}
+                className="border border-charcoal/20 bg-ivory hover:bg-sand px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-charcoal transition-colors rounded"
+              >
+                Refresh Orders
+              </button>
+            </div>
+
+            <VendorOrdersSection
+              orders={orders}
+              counts={orderCounts}
+              onUpdateStatus={handleUpdateItemStatus}
+              loading={loadingOrders}
+            />
+          </div>
+        )}
+
+        {/* Tab 2: Catalog & Studio Profile (Original View) */}
+        {activeTab === "catalog" && (
+          <>
+            {/* Inventory & Analytics Cards */}
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="rounded border border-charcoal/15 bg-sand/40 p-4">
             <span className="text-[10px] uppercase font-bold text-charcoal/60 tracking-wider">
               Total Creations
@@ -558,6 +729,8 @@ export default function VendorDashboard() {
             )}
           </div>
         </div>
+        </>
+        )}
       </main>
 
       {/* Add / Edit Product Modal */}

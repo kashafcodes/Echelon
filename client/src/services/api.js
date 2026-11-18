@@ -190,6 +190,48 @@ export const orderApi = {
   getMyOrders: () => apiFetch("/api/orders/my"),
 
   getOrderById: (id) => apiFetch(`/api/orders/${id}`),
+
+  cancelOrder: (id, payload = {}) =>
+    apiFetch(`/api/orders/${id}/cancel`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  // Vendor order management
+  getVendorOrders: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/orders/vendor/orders${qs ? `?${qs}` : ""}`);
+  },
+
+  updateVendorItemStatus: (orderId, itemId, payload) =>
+    apiFetch(`/api/orders/vendor/${orderId}/items/${itemId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  // Admin order management
+  getAdminOrders: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.append(key, val);
+      }
+    });
+    const qs = query.toString();
+    return apiFetch(`/api/orders/admin/all${qs ? `?${qs}` : ""}`);
+  },
+
+  updatePaymentStatus: (orderId, payload) =>
+    apiFetch(`/api/orders/admin/${orderId}/payment-status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
 };
 
 export const vendorPublicApi = {

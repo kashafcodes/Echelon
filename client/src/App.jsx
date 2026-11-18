@@ -13,11 +13,13 @@ import AdminProfile from "./pages/AdminProfile.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage.jsx";
+import MyOrdersPage from "./pages/MyOrdersPage.jsx";
 
 function AppContent() {
   const { user } = useAuth();
   const [route, setRoute] = useState(() => {
     const hash = window.location.hash.toLowerCase();
+    if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) return "my-orders";
     if (hash.startsWith("#order-confirmation")) return "order-confirmation";
     if (hash.startsWith("#checkout")) return "checkout";
     if (hash.startsWith("#product") && !hash.startsWith("#products")) return "product-detail";
@@ -39,7 +41,9 @@ function AppContent() {
   useEffect(() => {
     function handleHashChange() {
       const hash = window.location.hash.toLowerCase();
-      if (hash.startsWith("#order-confirmation")) {
+      if (hash.startsWith("#my-orders") || hash.startsWith("#orders")) {
+        setRoute("my-orders");
+      } else if (hash.startsWith("#order-confirmation")) {
         setRoute("order-confirmation");
       } else if (hash.startsWith("#checkout")) {
         setRoute("checkout");
@@ -106,6 +110,12 @@ function AppContent() {
     }
 
     switch (route) {
+      case "my-orders":
+        return (
+          <ProtectedRoute allowedRoles={["customer", "vendor", "admin"]}>
+            <MyOrdersPage />
+          </ProtectedRoute>
+        );
       case "order-confirmation":
         return (
           <ProtectedRoute allowedRoles={["customer", "vendor", "admin"]}>

@@ -1,8 +1,19 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
-import { connectDatabase, getDatabaseState } from "./db.js";
+import connectDB, { getDatabaseState } from "./db.js";
+import authRoutes from "./routes/authRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import vendorProductRoutes from "./routes/vendorProductRoutes.js";
+import adminProductRoutes from "./routes/adminProductRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import { getCategories } from "./controllers/productController.js";
+import dotenv from "dotenv";
 
+// dotenv.config({ path: '/custom/path/to/.env' })
+dotenv.config({
+  path: './.env'
+})
 dotenv.config();
 
 const app = express();
@@ -15,86 +26,33 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
 
-// In-memory store for artisan registrations when DB is in setup
-const inMemoryArtisans = [];
-
+// Health check endpoint
 app.get("/api/health", (_request, response) => {
   response.json({
     ok: true,
     service: "lokart-api",
     database: getDatabaseState(),
-    uptime: process.uptime(),
+    message: "LokArt API is running smoothly.",
   });
 });
 
-app.get("/api/artisans", (_request, response) => {
-  response.json({
-    ok: true,
-    total: inMemoryArtisans.length,
-    data: inMemoryArtisans,
-  });
-});
+// Authentication routes
+app.use("/api/auth", authRoutes);
 
-app.post("/api/artisans", (request, response) => {
-  try {
-    const {
-      fullName,
-      phone,
-      district,
-      municipality,
-      craft,
-      experience,
-      supportPreference,
-      story,
-      sampleCraft,
-      isHelper,
-      consent,
-    } = request.body;
+// Category & Product routes
+app.get("/api/categories", getCategories);
+app.use("/api/products", productRoutes);
+app.use("/api/vendor/products", vendorProductRoutes);
+app.use("/api/admin/products", adminProductRoutes);
+app.use("/api/orders", orderRoutes);
 
-    if (!fullName || !phone || !craft) {
-      return response.status(400).json({
-        ok: false,
-        message: "Full name, phone number, and craft category are required.",
-      });
-    }
-
-    const newArtisan = {
-      id: `LOK-${Date.now().toString(36).toUpperCase()}`,
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      district: district ? district.trim() : "Parsa",
-      municipality: municipality ? municipality.trim() : "",
-      craft,
-      experience: experience || "1-3 years",
-      supportPreference: supportPreference || "self",
-      story: story ? story.trim() : "",
-      sampleCraft: sampleCraft || {},
-      isHelper: Boolean(isHelper),
-      consent: Boolean(consent),
-      status: "pending_verification",
-      registeredAt: new Date().toISOString(),
-    };
-
-    inMemoryArtisans.unshift(newArtisan);
-
-    return response.status(201).json({
-      ok: true,
-      message: "Artisan registration received successfully. Our Parsa coordinator will connect soon.",
-      artisan: newArtisan,
-    });
-  } catch (error) {
-    console.error("Artisan registration error:", error);
-    return response.status(500).json({
-      ok: false,
-      message: "Failed to process artisan registration.",
-    });
-  }
-});
-
+// Global error handler
 app.use((error, _request, response, _next) => {
-  console.error(error);
+  console.error("Unhandled error:", error);
   response.status(500).json({ ok: false, message: "Something went wrong." });
 });
 
@@ -102,4 +60,4 @@ app.listen(port, () => {
   console.log(`LokArt API listening on http://localhost:${port}`);
 });
 
-connectDatabase();
+connectDB();

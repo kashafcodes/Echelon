@@ -213,7 +213,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-ivory flex flex-col">
       <SiteHeader />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 pb-28 sm:pb-12">
         {/* page title */}
         <h1 className="font-serif text-3xl text-charcoal mb-8 tracking-tight">Checkout</h1>
 

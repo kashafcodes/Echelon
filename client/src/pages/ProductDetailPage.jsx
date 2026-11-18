@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { productApi, vendorPublicApi } from "../services/api.js";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
-import CartDrawer from "../components/CartDrawer.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -363,7 +362,6 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-ivory flex flex-col">
         <SiteHeader />
-        <CartDrawer />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center py-24 px-4">
             <p className="font-serif text-2xl text-charcoal/60 mb-4">No product selected.</p>
@@ -378,10 +376,9 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-ivory flex flex-col">
       <SiteHeader />
-      <CartDrawer />
 
       <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24 sm:pb-8">
 
           {/* ── Loading ── */}
           {loading && <LoadingSkeleton />}

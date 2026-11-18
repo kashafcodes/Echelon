@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
-import CartDrawer from "../components/CartDrawer.jsx";
 import OrderTrackingTimeline from "../components/customer/OrderTrackingTimeline.jsx";
 import { orderApi } from "../services/api.js";
 
@@ -77,7 +76,6 @@ export default function MyOrdersPage() {
   return (
     <div className="min-h-screen bg-ivory flex flex-col justify-between">
       <SiteHeader />
-      <CartDrawer />
 
       <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         {/* Breadcrumb & Header */}
